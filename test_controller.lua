@@ -1,5 +1,24 @@
 
+
+
+--====================================================================--
+--== Imports
+
+
+local Utils = require 'dmc_utils'
+
+
+
+--====================================================================--
+--== Setup, Constants
+
+
 local DELAY_TIME = 10000
+
+
+
+--====================================================================--
+--== Support Functions
 
 
 local function destroyObjIn( obj, time )
@@ -8,7 +27,12 @@ local function destroyObjIn( obj, time )
 end
 
 
+
+--======================================================--
+-- Test: Load Screen
+
 local function test_loadScreen()
+	print( "test_loadScreen" )
 
 	local LoadScreen = require 'component.load_screen'
 
@@ -30,13 +54,54 @@ local function test_loadScreen()
 end 
 
 
+--======================================================--
+-- Test: Pause Screen
+
+local function test_pauseScreen()
+	print( "test_pauseScreen" )
+
+	local PauseScreen = require 'component.pause_screen'
+
+	local o = PauseScreen:new()
+	o.x, o.y = 240, 160
+	o.x, o.y = 240, 160
+
+	local f = function( e )
+		print( "test_pauseScreen:" )
+
+		if e.type == o.ACTIVE then 
+			print( "is active:", e.is_active )
+		elseif e.type == o.MENU then 
+			print( "menu selected" )
+		else
+			print( "unknown event" )
+		end
+	end
+	o:addEventListener( o.EVENT, f )
+
+	destroyObjIn( o )
+end 
+
+
+
+--====================================================================--
+--== Test Controller Setup
+--====================================================================--
+
+
 local TestController = {}
 
 
 TestController.run = function( params )
 
-	test_loadScreen()
+	--[[
+	uncomment test to run
+	--]]
+
+	-- test_loadScreen()
+	test_pauseScreen()
 
 end 
+
 
 return TestController
