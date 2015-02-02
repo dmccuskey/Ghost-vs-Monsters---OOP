@@ -27,6 +27,35 @@ local function destroyObjIn( obj, time )
 end
 
 
+--======================================================--
+-- Test: Level Screen
+
+local function test_levelScreen()
+	print( "test_levelScreen" )
+
+	local LevelScreen = require 'component.level_screen'
+
+	local o = LevelScreen:new()
+
+	o.x, o.y = 240, 160
+
+	local f = function( e )
+		print( "test_levelScreen:" )
+
+		if e.type == o.ACTIVE then 
+			print( "is active:", e.is_active )
+		elseif e.type == o.MENU then 
+			print( "menu selected" )
+		else
+			print( "unknown event", e.type )
+		end
+	end
+	o:addEventListener( o.EVENT, f )
+
+	destroyObjIn( o )
+end 
+
+
 
 --======================================================--
 -- Test: Load Screen
@@ -64,7 +93,6 @@ local function test_pauseScreen()
 
 	local o = PauseScreen:new()
 	o.x, o.y = 240, 160
-	o.x, o.y = 240, 160
 
 	local f = function( e )
 		print( "test_pauseScreen:" )
@@ -98,8 +126,9 @@ TestController.run = function( params )
 	uncomment test to run
 	--]]
 
+	test_levelScreen()
 	-- test_loadScreen()
-	test_pauseScreen()
+	-- test_pauseScreen()
 
 end 
 
