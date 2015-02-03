@@ -38,6 +38,8 @@ local Widgets = require 'lib.dmc_widgets'
 local newClass = Objects.newClass
 local ComponentBase = Objects.ComponentBase
 
+local LOCAL_DEBUG = false
+
 
 
 --====================================================================--
@@ -74,12 +76,14 @@ function PauseScreen:__init__( params )
 
 	--== Display Objects
 
+	self._primer = nil -- test
+
 	self._group = nil -- display group
 
-	self._bg = nil 
+	self._bg = nil
 
-	self._btn_menu = nil 
-	self._btn_pause = nil 
+	self._btn_menu = nil
+	self._btn_pause = nil
 
 end
 -- __undoInit__()
@@ -98,23 +102,45 @@ function PauseScreen:__createView__()
 	-- print( "PauseScreen:__createView__" )
 	self:superCall( '__createView__' )
 	--==--
-	local o, dg 
+	local o, dg
 
-	-- group for objects
+
+	-- Setup display primer
+
+	o = display.newRect( 0, 0, 480, 10)
+	o.anchorX, o.anchorY = 0.5, 0
+	o:setFillColor(0,0,0,0)
+	if LOCAL_DEBUG then
+		o:setFillColor(255,0,0,255)
+	end
+	o.x, o.y = 0, 0
+
+	self:insert( o )
+	self._primer = o
+
+
+	-- group for main/shade
+
 	dg = display.newGroup()
 
 	self:insert( dg )
-	self._group = dg 
+	self._group = dg
+
 
 	-- shade background
+
 	o = display.newRect( 0, 0, 480, 320 )
-	o:setFillColor( 0.5, 0.5, 0 )
+	o.anchorX, o.anchorY = 0.5, 0
+	o:setFillColor( 0,0,0, 0 )
 	o.alpha = 0.5
+	o.x, o.y = 0, 0
 
 	dg:insert( o )
 	self._bg = o
 
+
 	-- main menu button
+
 	o = Widgets.newPushButton{
 		id='menu-button',
 		view='image',
@@ -124,13 +150,15 @@ function PauseScreen:__createView__()
 			file='assets/buttons/pausemenubtn-over.png'
 		}
 	}
-	o.x, o.y = -30, 0
+	o.x, o.y = -200, 280
 
 	dg:insert( o.view )
-	self._btn_menu = o 
+	self._btn_menu = o
+
 
 	-- pause button
-	o = Widgets.newPushButton{
+
+	o = Widgets.newToggleButton{
 		id='pause-button',
 		view='image',
 		file='assets/buttons/pausebtn.png',
@@ -139,29 +167,37 @@ function PauseScreen:__createView__()
 			file='assets/buttons/pausebtn-over.png'
 		}
 	}
-	o.x, o.y = 30, 0
+	o.x, o.y = 200, 280
 
-	dg:insert( o.view )
-	self._btn_pause = o 
+	self:insert( o.view )
+	self._btn_pause = o
 
 end
 -- __undoCreateView__()
 --
 function PauseScreen:__undoCreateView__()
 	--print( "PauseScreen:__undoCreateView__" )
-	local o 
+	local o
 
 	o = self._btn_pause
 	o:removeSelf()
-	self._btn_pause = nil 
+	self._btn_pause = nil
 
 	o = self._btn_menu
 	o:removeSelf()
-	self._btn_menu = nil 
+	self._btn_menu = nil
 
 	o = self._bg
 	o:removeSelf()
-	self._bg = nil 
+	self._bg = nil
+
+	o = self._group
+	o:removeSelf()
+	self._group = nil
+
+	o = self._primer
+	o:removeSelf()
+	self._primer = nil
 
 	--==--
 	self:superCall( '__undoCreateView__' )
@@ -181,7 +217,7 @@ function PauseScreen:__initComplete__()
 	o = self._btn_menu
 	o.onRelease = self:createCallback( self.menuButtonEvent_handler )
 
-	-- self.is_active = self._btn_pause.is_active
+	self.is_active = self._btn_pause.is_active
 
 	self:show()
 end
@@ -236,7 +272,7 @@ function PauseScreen:pauseButtonEvent_handler( event )
 	-- print( "PauseScreen:pauseButtonEvent_handler" )
 	local btn = event.target
 
-	audio.play( tapSound )
+	-- audio.play( tapSound )
 
 	self.is_active = btn.is_active
 	self:dispatchEvent( self.ACTIVE, {is_active=btn.is_active} )

@@ -57,21 +57,20 @@ end
 --======================================================--
 -- Test: Pause Screen
 
-local function test_pauseScreen()
-	print( "test_pauseScreen" )
+local function test_pauseOverlay()
+	print( "test_pauseOverlay" )
 
-	local PauseScreen = require 'component.pause_screen'
+	local PauseScreen = require 'component.pause_overlay'
 
 	local o = PauseScreen:new()
-	o.x, o.y = 240, 160
-	o.x, o.y = 240, 160
+	o.x, o.y = 240, 5
 
 	local f = function( e )
-		print( "test_pauseScreen:" )
+		print( "test_pauseOverlay:" )
 
-		if e.type == o.ACTIVE then 
+		if e.type == o.ACTIVE then
 			print( "is active:", e.is_active )
-		elseif e.type == o.MENU then 
+		elseif e.type == o.MENU then
 			print( "menu selected" )
 		else
 			print( "unknown event" )
@@ -80,7 +79,7 @@ local function test_pauseScreen()
 	o:addEventListener( o.EVENT, f )
 
 	destroyObjIn( o )
-end 
+end
 
 
 
@@ -99,7 +98,8 @@ TestController.run = function( params )
 	--]]
 
 	-- test_loadScreen()
-	test_pauseScreen()
+	test_pauseOverlay()
+
 
 end 
 
