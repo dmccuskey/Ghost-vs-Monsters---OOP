@@ -63,8 +63,8 @@ local function test_levelOverlay()
 
 	local o = LevelOverlay:new{
 		width=W, height=H,
-		levelMgr=ACI.level_mgr,
-		soundMgr=ACI.sound_mgr
+		level_mgr=ACI.level_mgr,
+		sound_mgr=ACI.sound_mgr
 	}
 
 	o.x, o.y = 240, 0

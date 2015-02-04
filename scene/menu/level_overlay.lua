@@ -86,8 +86,8 @@ function LevelOverlay:__init__( params )
 
 	--== Sanity Check
 
-	assert( params.soundMgr and params.soundMgr:isa(SoundMgr), "Level Overlay requires param 'soundMgr'")
-	assert( params.levelMgr and params.levelMgr:isa(LevelMgr), "Level Overlay requires param 'levelMgr'")
+	assert( params.sound_mgr and params.sound_mgr:isa(SoundMgr), "Level Overlay requires param 'sound_mgr'")
+	assert( params.level_mgr and params.level_mgr:isa(LevelMgr), "Level Overlay requires param 'level_mgr'")
 
 
 	--== Properties
@@ -97,8 +97,8 @@ function LevelOverlay:__init__( params )
 
 	--== Objects
 
-	self._lvlMgr = params.levelMgr
-	self._sndMgr = params.soundMgr
+	self._level_mgr = params.level_mgr
+	self._sound_mgr = params.sound_mgr
 
 	--== Display Objects
 
@@ -296,19 +296,19 @@ end
 
 
 function LevelOverlay:cancelButtonEvent_handler( event )
-	self._sndMgr:play( self._sndMgr.TAP )
+	self._sound_mgr:play( self._sound_mgr.TAP )
 	self:dispatchEvent( self.CANCELED )
 end
 
 function LevelOverlay:level1ButtonEvent_handler( event )
-	self._sndMgr:play( self._sndMgr.TAP )
-	local d = self._lvlMgr:getLevelData( 1 )
+	self._sound_mgr:play( self._sound_mgr.TAP )
+	local d = self._level_mgr:getLevelData( 1 )
 	self:dispatchEvent( self.SELECTED, {name=d.info.name, data=d}, {merge=false}  )
 end
 
 function LevelOverlay:level2ButtonEvent_handler( event )
-	self._sndMgr:play( self._sndMgr.TAP )
-	local d = self._lvlMgr:getLevelData( 'level2' )
+	self._sound_mgr:play( self._sound_mgr.TAP )
+	local d = self._level_mgr:getLevelData( 'level2' )
 	self:dispatchEvent( self.SELECTED, {name=d.info.name, data=d}, {merge=false} )
 end
 
