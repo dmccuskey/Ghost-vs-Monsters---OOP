@@ -142,8 +142,8 @@ function AppController:__init__( params )
 
 	--== Services ==--
 
-	self._levelMgr = nil
-	self._soundMgr = nil
+	self._level_mgr = nil
+	self._sound_mgr = nil
 
 	--== Display Groups ==--
 
@@ -258,14 +258,14 @@ end
 -- returns app level manager
 --
 function AppController.__getters:level_mgr()
-	return self._levelMgr
+	return self._level_mgr
 end
 
 -- getter: sound_mgr
 -- returns app sound manager
 --
 function AppController.__getters:sound_mgr()
-	return self._soundMgr
+	return self._sound_mgr
 end
 
 
@@ -274,8 +274,9 @@ end
 --======================================================--
 --== START: State Machine
 
--- state_create()
---
+
+--== State Create ==--
+
 function AppController:state_create( next_state, params )
 	-- print( "AppController:state_create: >> ", next_state )
 	if next_state == AppController.STATE_INIT then
@@ -286,9 +287,8 @@ function AppController:state_create( next_state, params )
 end
 
 
--- do_state_initialize()
--- initialize different parts of the application
---
+--== State Menu ==--
+
 function AppController:do_state_initialize( params )
 	-- print( "AppController:do_state_initialize", params )
 
@@ -310,11 +310,11 @@ function AppController:do_state_initialize( params )
 
 	-- Init Level Manager
 
-	self._levelMgr = LevelMgr:new()
+	self._level_mgr = LevelMgr:new()
 
 	-- Init Sound Manager
 
-	self._soundMgr = SoundMgr:new()
+	self._sound_mgr = SoundMgr:new()
 
 	--== End Initialization ==--
 
@@ -333,7 +333,7 @@ end
 -- handles transition effects from app initialization
 --
 function AppController:state_initialize( next_state, params )
-	print( "AppController:state_initialize: >> ", next_state, params )
+	-- print( "AppController:state_initialize: >> ", next_state, params )
 
 	if next_state == AppController.STATE_MENU then
 		self:do_state_menu( params )
@@ -343,12 +343,10 @@ function AppController:state_initialize( next_state, params )
 end
 
 
+--== State Menu ==--
 
--- do_state_menu()
--- initialize different parts of the application
---
 function AppController:do_state_menu( params )
-	print( "AppController:do_state_menu", params )
+	-- print( "AppController:do_state_menu", params )
 
 	self:setState( AppController.STATE_MENU )
 
@@ -364,9 +362,6 @@ function AppController:do_state_menu( params )
 
 end
 
--- state_menu()
--- showing app menu
---
 function AppController:state_menu( next_state, params )
 	print( "AppController:state_menu: >> ", next_state, params )
 
@@ -389,17 +384,16 @@ end
 -- does setup to receive event messages from each scene
 --
 function AppController:_addSceneHandler( scene )
-	print( "AppController:_addSceneHandler: ", scene )
+	-- print( "AppController:_addSceneHandler: ", scene )
 	if not scene or not scene.EVENT then return end
 	scene:addEventListener( scene.EVENT, self._current_scene_f )
 end
 
 function AppController:_removeSceneHandler( scene )
-	print( "AppController:_removeSceneHandler: ", scene )
+	-- print( "AppController:_removeSceneHandler: ", scene )
 	if not scene or not scene.EVENT then return end
 	scene:removeEventListener( scene.EVENT, self._current_scene_f )
 end
-
 
 
 -- _gotoScene()
@@ -408,7 +402,7 @@ end
 -- does setup to receive event messages from each scene
 --
 function AppController:_gotoScene( name, options )
-	print( "AppController:_gotoScene: ", name )
+	-- print( "AppController:_gotoScene: ", name )
 	options = options or {}
 	--==--
 	local o, f = self._current_scene, self._current_scene_f
@@ -419,11 +413,8 @@ function AppController:_gotoScene( name, options )
 
 	self:_removeSceneHandler( o )
 
-	print( ">1", o )
 	composer.gotoScene( name, options )
-	print( ">2", o )
 	o = composer.getScene( name )
-	print( ">>", o )
 	assert( o, sformat( "ERROR: missing scene '%s'", tostring(name) ) )
 
 	self._current_scene = o
@@ -432,16 +423,12 @@ end
 
 
 
-
-
-
 --====================================================================--
 --== Event Handlers
 
 
-
 function AppController:_systemEvent_handler( event )
-	print( "AppController:_systemEvent_handler", event.type )
+	-- print( "AppController:_systemEvent_handler", event.type )
 	local e_type = event.type
 
 	if e_type == 'applicationStart' then
@@ -462,17 +449,14 @@ end
 
 
 function AppController:_currentScene_handler( event )
-	print( "AppController:_currentScene_handler" )
+	print( "AppController:_currentScene_handler", event.type )
 	--==--
 	local cs = self._current_scene
 
 	--== Events from Menu Scene
 
-	if event.type == cs.LANDING_COMPLETE then
-
-		local section = AppController.section.HOME_FEED
-		self:gotoState( AppController.STATE_NORMAL, { section=section }  )
-
+	if event.type == cs.LEVEL_SELECTED then
+		self:gotoState( AppController.STATE_GAME, { level=event.data }  )
 
 	--== Events from Game Scene
 

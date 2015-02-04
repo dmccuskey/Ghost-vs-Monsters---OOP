@@ -70,7 +70,7 @@ MenuView.GHOST_POS = {
 
 MenuView.EVENT = 'menu-view-event'
 
-MenuView.SELECTED = 'button-selected'
+MenuView.SELECTED = 'level-selected'
 
 
 --======================================================--
@@ -81,7 +81,7 @@ MenuView.SELECTED = 'button-selected'
 -- one of the base methods to override for dmc_objects
 --
 function MenuView:__init__( params )
-	print( "MenuView:__init__" )
+	-- print( "MenuView:__init__" )
 	self:superCall( '__init__', params )
 	params = params or {}
 	--==--
@@ -286,7 +286,7 @@ end
 
 
 function MenuView:_startButtonAnimations()
-	print( "MenuView:_startButtonAnimations" )
+	-- print( "MenuView:_startButtonAnimations" )
 
 	local W, H = self._width , self._height
 	local H_CENTER, V_CENTER = W*0.5, H*0.5
@@ -360,7 +360,7 @@ function MenuView:_startButtonAnimations()
 end
 
 function MenuView:_stopButtonAnimations()
-	print( "MenuView:_stopButtonAnimations" )
+	-- print( "MenuView:_stopButtonAnimations" )
 	transition.cancel( self._tween_play )
 	transition.cancel( self._tween_feint )
 	self._tween_play = nil
@@ -369,7 +369,7 @@ end
 
 
 function MenuView:_animateGhostDown()
-	print( "MenuView:_animateGhostDown" )
+	-- print( "MenuView:_animateGhostDown" )
 	local p = {
 		time=MenuView.GHOST_DELAY,
 		y=MenuView.GHOST_POS.down.y,
@@ -379,7 +379,7 @@ function MenuView:_animateGhostDown()
 end
 
 function MenuView:_animateGhostUp()
-	print( "MenuView:_animateGhostUp" )
+	-- print( "MenuView:_animateGhostUp" )
 	local p = {
 		time=MenuView.GHOST_DELAY,
 		y=MenuView.GHOST_POS.up.y,
@@ -390,20 +390,20 @@ end
 
 
 function MenuView:_startGhostAnimation()
-	print( "MenuView:_startGhostAnimation" )
+	-- print( "MenuView:_startGhostAnimation" )
 	self._ghost.y = MenuView.GHOST_POS.start.y
 	self:_animateGhostUp()
 end
 
 function MenuView:_stopGhostAnimation()
-	print( "MenuView:_stopGhostAnimation" )
+	-- print( "MenuView:_stopGhostAnimation" )
 	transition.cancel( self._tween_ghost )
 	self._tween_ghost = nil
 end
 
 
 function MenuView:_createLevelOverlay()
-	print( "MenuView:_createLevelOverlay" )
+	-- print( "MenuView:_createLevelOverlay" )
 	if self._view_level then self:_destroyLevelOverlay() end
 
 	local W, H = self._width , self._height
@@ -429,7 +429,7 @@ function MenuView:_createLevelOverlay()
 end
 
 function MenuView:_destroyLevelOverlay()
-	print( "MenuView:_destroyLevelOverlay" )
+	-- print( "MenuView:_destroyLevelOverlay" )
 	local o, f = self._view_level, self._view_level_f
 	if o and f then
 		o:removeEventListener( o.EVENT, f )
@@ -464,7 +464,7 @@ end
 -- event handler for the Level Overlay
 --
 function MenuView:_levelOverlayEvent_handler( event )
-	print( "MenuView:_levelOverlayEvent_handler: ", event.type )
+	-- print( "MenuView:_levelOverlayEvent_handler: ", event.type )
 	local target = event.target
 
 	if event.type == target.CANCELED then
@@ -473,7 +473,7 @@ function MenuView:_levelOverlayEvent_handler( event )
 		self:_destroyLevelOverlay()
 		local data = event.data
 		local name, level = data.name, data.level
-		print( "level info:", data.name, data.level )
+		-- print( "level info:", data.name, data.level )
 		local p = {level=level}
 		self:dispatchEvent( self.SELECTED, p, {merge=false} )
 	else
