@@ -1,5 +1,5 @@
 --====================================================================--
--- component/load_screen.lua
+-- component/load_overlay.lua
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
@@ -9,7 +9,7 @@
 
 
 --====================================================================--
---== Ghost vs Monsters : Load Screen
+--== Ghost vs Monsters : Load Overlay
 --====================================================================--
 
 
@@ -34,24 +34,27 @@ local Objects = require 'lib.dmc_corona.dmc_objects'
 local newClass = Objects.newClass
 local ComponentBase = Objects.ComponentBase
 
+local LOCAL_DEBUG = true
+
 
 
 --====================================================================--
---== Load Screen class
+--== Load Overlay class
 --====================================================================--
 
 
-local LoadScreen = newClass( ComponentBase, {name="Load Screen"} )
+local LoadOverlay = newClass( ComponentBase, {name="Load Overlay"} )
 
 --== Class Constants
 
-LoadScreen.BAR_WIDTH = 300
-LoadScreen.BAR_HEIGHT = 10
+LoadOverlay.BAR_WIDTH = 300
+LoadOverlay.BAR_HEIGHT = 10
 
 --== Event Constants
 
-LoadScreen.EVENT = 'load-screen-event'
-LoadScreen.COMPLETE = 'loading-complete'
+LoadOverlay.EVENT = 'load-screen-event'
+
+LoadOverlay.COMPLETE = 'loading-complete'
 
 
 --======================================================--
@@ -61,7 +64,7 @@ LoadScreen.COMPLETE = 'loading-complete'
 --
 -- one of the base methods to override for dmc_objects
 --
-function LoadScreen:__init__()
+function LoadOverlay:__init__()
 	self:superCall( '__init__' )
 	--==--
 
@@ -71,14 +74,16 @@ function LoadScreen:__init__()
 
 	--== Display Objects
 
-	self._bg = nil 
-	self._load_bar = nil 
-	self._outline = nil 
+	self._primer = nil
+
+	self._bg = nil
+	self._load_bar = nil
+	self._outline = nil
 end
 
 -- __undoInit__()
 --
--- function LoadScreen:__undoInit__()
+-- function LoadOverlay:__undoInit__()
 -- 	--==--
 -- 	self:superCall( '__undoInit__' )
 -- end
@@ -88,38 +93,57 @@ end
 --
 -- one of the base methods to override for dmc_objects
 --
-function LoadScreen:__createView__()
+function LoadOverlay:__createView__()
 	self:superCall( '__createView__' )
 	--==--
 
-	local BAR_Y = 100
+	local BAR_W, BAR_H = LoadOverlay.BAR_WIDTH, LoadOverlay.BAR_HEIGHT
+	local BAR_Y = 270
 	local o
+
+	-- setup display primer
+
+	o = display.newRect( 0, 0, 480, 10)
+	o:setFillColor(0,0,0,0)
+	if LOCAL_DEBUG then
+		o:setFillColor(1,0,0,0.75)
+	end
+	o.anchorX, o.anchorY = 0.5, 0
+	o.x, o.y = 0, 0
+
+	self:insert( o )
+	self._primer = o
+
 
 	-- create background
 
 	o = display.newImageRect( 'assets/backgrounds/loading.png', 480, 320 )
+	o.anchorX, o.anchorY = 0.5, 0
+	o.x, o.y = 0, 0
 
 	self:insert( o )
-	self._bg = o 
+	self._bg = o
+
 
 	-- loading bar
 
-	o = display.newRect( 0, 0, LoadScreen.BAR_WIDTH, LoadScreen.BAR_HEIGHT )
+	o = display.newRect( 0, 0, BAR_W, BAR_H )
 	o.strokeWidth = 0
-	o:setStrokeColor( 0, 0, 0, 0 )
 	o:setFillColor( 255, 255, 255, 255 )
 	o.anchorX, o.anchorY = 0, 0.5
-	o.y = BAR_Y
+	o.x, o.y = 0, BAR_Y
 
 	self:insert( o )
 	self._load_bar = o
 
+
 	-- loading bar outline
 
-	o = display.newRect( 0, 0, LoadScreen.BAR_WIDTH, LoadScreen.BAR_HEIGHT )
+	o = display.newRect( 0, 0, BAR_W, BAR_H )
 	o.strokeWidth = 2
 	o:setStrokeColor( 200, 200, 200, 255 )
 	o:setFillColor( 0, 0, 0, 0 )
+	o.anchorX, o.anchorY = 0.5, 0.5
 	o.x, o.y = 0, BAR_Y
 
 	self:insert( o )
@@ -129,8 +153,8 @@ end
 
 -- __undoCreateView__()
 --
-function LoadScreen:__undoCreateView__()
-	local o 
+function LoadOverlay:__undoCreateView__()
+	local o
 
 	o = self._outline
 	o:removeSelf()
@@ -138,28 +162,32 @@ function LoadScreen:__undoCreateView__()
 
 	o = self._load_bar
 	o:removeSelf()
-	self._load_bar = nil 
+	self._load_bar = nil
 
 	o = self._bg
 	o:removeSelf()
-	self._bg = nil 
+	self._bg = nil
+
+	o = self._primer
+	o:removeSelf()
+	self._primer = nil
 
 	--==--
 	self:superCall( '__undoCreateView__' )
 end
 
+
 -- __initComplete__()
 --
-function LoadScreen:__initComplete__()
+function LoadOverlay:__initComplete__()
 	self:superCall( '__initComplete__' )
 	--==--
 	self:clear()
 end
 
-
 -- __undoInitComplete__()
 --
--- function LoadScreen:__undoInitComplete__()
+-- function LoadOverlay:__undoInitComplete__()
 --
 -- 	--==--
 -- 	self:superCall( '__undoCreateView__' )
@@ -174,11 +202,11 @@ end
 --== Public Methods
 
 
-function LoadScreen.__getters:percent_complete()
+function LoadOverlay.__getters:percent_complete()
 	return self._percent_complete
 end
 
-function LoadScreen.__setters:percent_complete( value )
+function LoadOverlay.__setters:percent_complete( value )
 	assert( type(value)=='number' )
 	if value < 0 then value = 0 end
 	if value > 100 then value = 100 end
@@ -191,7 +219,7 @@ function LoadScreen.__setters:percent_complete( value )
 	self._percent_complete = value
 
 	-- calculate bar coords
-	local width = LoadScreen.BAR_WIDTH * ( value / 100 )
+	local width = LoadOverlay.BAR_WIDTH * ( value / 100 )
 
 	if width == 0 then
 		bar.isVisible = false
@@ -199,7 +227,7 @@ function LoadScreen.__setters:percent_complete( value )
 		bar.isVisible = true
 		bar.width = width
 
-		bar.x = - (LoadScreen.BAR_WIDTH / 2 ) -- - ( LoadScreen.BAR_WIDTH - bar.width ) / 2
+		bar.x = - (LoadOverlay.BAR_WIDTH / 2 ) -- - ( LoadOverlay.BAR_WIDTH - bar.width ) / 2
 	end
 
 	if self._percent_complete >= 100 then
@@ -212,15 +240,25 @@ end
 --
 -- initialize load screen to beginnings
 --
-function LoadScreen:clear()
+function LoadOverlay:clear()
 	self.percent_complete = 0 -- setter
 end
+
 
 
 --====================================================================--
 --== Private Methods
 
 
+-- none
 
 
-return LoadScreen
+
+--====================================================================--
+--== Event Handlers
+
+
+-- none
+
+
+return LoadOverlay
