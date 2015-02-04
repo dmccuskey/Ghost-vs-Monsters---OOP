@@ -65,10 +65,18 @@ LoadOverlay.COMPLETE = 'loading-complete'
 -- one of the base methods to override for dmc_objects
 --
 function LoadOverlay:__init__( params )
+	params = params or {}
 	self:superCall( '__init__', params )
 	--==--
 
+	--== Sanity Check
+
+	assert( params.width and params.height, "Load Overlay requires params 'width' & 'height'")
+
 	--== Properties
+
+	self._width = params.width
+	self._height = params.height
 
 	self._percent_complete = 0
 
@@ -97,13 +105,16 @@ function LoadOverlay:__createView__()
 	self:superCall( '__createView__' )
 	--==--
 
+	local W, H = self._width , self._height
+	local H_CENTER, V_CENTER = W*0.5, H*0.5
+
 	local BAR_W, BAR_H = LoadOverlay.BAR_WIDTH, LoadOverlay.BAR_HEIGHT
 	local BAR_Y = 270
 	local o
 
 	-- setup display primer
 
-	o = display.newRect( 0, 0, 480, 10)
+	o = display.newRect( 0, 0, W, 10)
 	o:setFillColor(0,0,0,0)
 	if LOCAL_DEBUG then
 		o:setFillColor(1,0,0,0.75)
@@ -117,7 +128,7 @@ function LoadOverlay:__createView__()
 
 	-- create background
 
-	o = display.newImageRect( 'assets/backgrounds/loading.png', 480, 320 )
+	o = display.newImageRect( 'assets/backgrounds/loading.png', W, H )
 	o.anchorX, o.anchorY = 0.5, 0
 	o.x, o.y = 0, 0
 
@@ -129,7 +140,7 @@ function LoadOverlay:__createView__()
 
 	o = display.newRect( 0, 0, BAR_W, BAR_H )
 	o.strokeWidth = 0
-	o:setFillColor( 255, 255, 255, 255 )
+	o:setFillColor( 1, 1, 1 )
 	o.anchorX, o.anchorY = 0, 0.5
 	o.x, o.y = 0, BAR_Y
 
@@ -141,7 +152,7 @@ function LoadOverlay:__createView__()
 
 	o = display.newRect( 0, 0, BAR_W, BAR_H )
 	o.strokeWidth = 2
-	o:setStrokeColor( 200, 200, 200, 255 )
+	o:setStrokeColor( 200/255, 200/255, 200/255, 1 )
 	o:setFillColor( 0, 0, 0, 0 )
 	o.anchorX, o.anchorY = 0.5, 0.5
 	o.x, o.y = 0, BAR_Y
@@ -208,13 +219,11 @@ end
 
 function LoadOverlay.__setters:percent_complete( value )
 	assert( type(value)=='number' )
+	-- sanitize value
 	if value < 0 then value = 0 end
 	if value > 100 then value = 100 end
 	--==--
 	local bar = self._load_bar
-	local width = 480
-
-	-- sanitize
 
 	self._percent_complete = value
 
@@ -231,7 +240,10 @@ function LoadOverlay.__setters:percent_complete( value )
 	end
 
 	if self._percent_complete >= 100 then
-		self:dispatchEvent( self.COMPLETE )
+		-- timer so that full bar is shown drawn
+		timer.performWithDelay( 150, function()
+			self:dispatchEvent( self.COMPLETE )
+		end)
 	end
 end
 
