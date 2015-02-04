@@ -49,7 +49,7 @@ local ComponentBase = Objects.ComponentBase
 local tinsert = table.insert
 local tremove = table.remove
 
-local LOCAL_DEBUG = true
+local LOCAL_DEBUG = false
 
 
 
@@ -86,8 +86,7 @@ function LevelOverlay:__init__( params )
 
 	--== Sanity Check
 
-	assert( params.soundMgr, "Level Overlay requires param 'soundMgr'")
-	-- assert( params.soundMgr and params.soundMgr:isa(SoundMgr), "Level Overlay requires param 'soundMgr'")
+	assert( params.soundMgr and params.soundMgr:isa(SoundMgr), "Level Overlay requires param 'soundMgr'")
 	assert( params.levelMgr and params.levelMgr:isa(LevelMgr), "Level Overlay requires param 'levelMgr'")
 
 
@@ -124,13 +123,13 @@ function LevelOverlay:__createView__()
 	--==--
 	local o, tmp
 
-	--== Setup display primer
+	-- setup display primer
 
 	o = display.newRect( 0, 0, 480, 10)
 	o.anchorX, o.anchorY = 0.5, 0
 	o:setFillColor(0,0,0,0)
 	if LOCAL_DEBUG then
-		o:setFillColor(1,0,0,1)
+		o:setFillColor(1,0,0,0.75)
 	end
 	o.x, o.y = 0, 0
 
@@ -142,11 +141,12 @@ function LevelOverlay:__createView__()
 
 	o = display.newRect( 0, 0, 480, 320 )
 	o.anchorX, o.anchorY = 0.5, 0
-	o:setFillColor( 1, 1, 0, 0.5 )
+	o:setFillColor( 0, 0, 0, 0.5 )
 	o.x, o.y = 0, 0
 
 	self:insert( o )
 	self._shade = o
+
 
 	-- Background/text
 
@@ -159,6 +159,7 @@ function LevelOverlay:__createView__()
 
 
 	-- Level 1 Button
+
 	tmp = self._bg
 	o = Widgets.newPushButton{
 		id='level-1-button',
@@ -176,6 +177,7 @@ function LevelOverlay:__createView__()
 
 
 	-- Level 2 Button
+
 	tmp = self._bg
 	o = Widgets.newPushButton{
 		id='level-2-button',
@@ -193,6 +195,7 @@ function LevelOverlay:__createView__()
 
 
 	-- Close Button
+
 	tmp = self._bg
 	o = Widgets.newPushButton{
 		id='close-button',
