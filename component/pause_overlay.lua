@@ -28,7 +28,7 @@ local VERSION = "0.2.0"
 
 --local Facebook = require 'dmc_facebook'
 local Objects = require 'lib.dmc_corona.dmc_objects'
--- local Utils = require 'dmc_utils'
+-- local Utils = require 'lib.dmc_corona.dmc_utils'
 local Widgets = require 'lib.dmc_widgets'
 
 
@@ -70,7 +70,7 @@ PauseScreen.MENU = 'menu-selected'
 --
 function PauseScreen:__init__( params )
 	-- print( "PauseScreen:__init__" )
-	self:superCall( '__init__' )
+	self:superCall( '__init__', params )
 	--==--
 
 	--== Properties

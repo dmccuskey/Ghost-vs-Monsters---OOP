@@ -139,7 +139,7 @@ end
 -- inserts a level into the level array
 --
 function LevelMgr:_insertLevelData( data )
-	print( "LevelMgr:_insertLevelData", data )
+	-- print( "LevelMgr:_insertLevelData", data )
 	assert( type(data)=='table', 'incorrect type for data' )
 	--==--
 	tinsert( self._levels, data )

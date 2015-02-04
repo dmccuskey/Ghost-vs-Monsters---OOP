@@ -64,8 +64,8 @@ LoadOverlay.COMPLETE = 'loading-complete'
 --
 -- one of the base methods to override for dmc_objects
 --
-function LoadOverlay:__init__()
-	self:superCall( '__init__' )
+function LoadOverlay:__init__( params )
+	self:superCall( '__init__', params )
 	--==--
 
 	--== Properties
