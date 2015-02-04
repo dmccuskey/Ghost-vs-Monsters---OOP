@@ -7,6 +7,9 @@
 -- Copyright (C) 2010 ANSCA Inc. All Rights Reserved.
 --====================================================================--
 
+--[[
+the anchor for this view is Top Center
+--]]
 
 --====================================================================--
 --== Ghost vs Monsters : Pause Screen
@@ -111,7 +114,7 @@ function PauseScreen:__createView__()
 	o.anchorX, o.anchorY = 0.5, 0
 	o:setFillColor(0,0,0,0)
 	if LOCAL_DEBUG then
-		o:setFillColor(255,0,0,255)
+		o:setFillColor(1,0,0,1)
 	end
 	o.x, o.y = 0, 0
 
@@ -261,6 +264,14 @@ function PauseScreen:menuConfirmation( event )
 		end
 	end
 end
+
+
+
+--====================================================================--
+--== Private Methods
+
+
+-- none
 
 
 
