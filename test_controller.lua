@@ -9,6 +9,8 @@
 --
 require 'dmc_corona_boot'
 
+local Utils = require 'lib.dmc_corona.dmc_utils'
+
 -- AppController gives us access to main controller and its components
 -- so we don't have to re-create in the test_controller
 --
@@ -162,16 +164,22 @@ local function test_menuMainView()
 	print( "test_menuMainView" )
 
 	local MenuView = require 'scene.menu.menu_view'
-	assert( type(MenuView)=='table' )
+	assert( type(MenuView)=='table', "ERROR: loading Menu View" )
 
-	local o = MenuView:new()
+	local o = MenuView:new{
+		width=W, height=H,
+		level_mgr=ACI.level_mgr,
+		sound_mgr=ACI.sound_mgr
+	}
 	o.x, o.y = H_CENTER, 0
 
 	local f = function( e )
 		print( "MenuView Event" )
 
 		if e.type == o.SELECTED then
-			print( "is active:", e.is_active )
+			local data = e.data
+			local level = data.level
+			print( "level info:", level.info.name, level )
 		else
 			print( "unknown event" )
 		end
