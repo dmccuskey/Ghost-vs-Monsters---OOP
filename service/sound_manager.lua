@@ -49,10 +49,20 @@ local LOCAL_DEBUG = true
 
 local SoundMgr = newClass( ObjectBase, {name="Sound Manager"} )
 
+SoundMgr.BLAST_OFF='blast-off-sound'
+SoundMgr.IMPACT='impact-sound'
+SoundMgr.NEW_ROUND='new-round-sound'
+SoundMgr.POOF='poof-sound'
 SoundMgr.TAP='tap-sound'
+SoundMgr.WEE='wee-sound'
 
 SoundMgr._SOUNDS = {
-	{ SoundMgr.TAP, 'assets/sounds/tapsound.wav' }
+	{ SoundMgr.BLAST_OFF, 'assets/sounds/blastoff.wav' },
+	{ SoundMgr.IMPACT, 'assets/sounds/blastoff.wav' },
+	{ SoundMgr.NEW_ROUND, 'assets/sounds/newround.wav' },
+	{ SoundMgr.POOF, 'assets/sounds/ghostpoof.wav' },
+	{ SoundMgr.TAP, 'assets/sounds/tapsound.wav' },
+	{ SoundMgr.WEE, 'assets/sounds/wee.wav' }
 }
 
 

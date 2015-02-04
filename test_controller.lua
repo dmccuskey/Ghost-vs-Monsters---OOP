@@ -37,6 +37,9 @@ local H_CENTER, V_CENTER = W*0.5, H*0.5
 local DESTROY_DELAY_TIME = 10000
 
 
+-- forward declares
+local test_gameMainView
+
 
 --====================================================================--
 --== Support Functions
@@ -52,6 +55,40 @@ end
 --====================================================================--
 --== Module Tests
 --====================================================================--
+
+
+--======================================================--
+-- Test: Ghost Character
+
+local function test_ghostCharacter()
+	print( "test_ghostCharacter" )
+
+	local GameView = require 'scene.game.game_view'
+	local ObjectFactory = require 'component.object_factory'
+	assert( type(ObjectFactory)=='table', "ERROR: loading Object Factory" )
+
+	local ge = test_gameMainView( true )
+	local o = ObjectFactory.create( 'ghost', {game_engine=ge} )
+	o.x, o.y = H_CENTER, 0
+
+	local f = function( e )
+		print( "MenuView Event" )
+
+		if e.type == o.SELECTED then
+			local data = e.data
+			local level = data.level
+			print( "level info:", level.info.name, level )
+		else
+			print( "unknown event" )
+		end
+	end
+	o:addEventListener( o.EVENT, f )
+
+	ge:startGamePlay()
+
+	destroyObjIn( o )
+end
+
 
 
 --======================================================--
@@ -158,6 +195,49 @@ end
 
 
 --======================================================--
+-- Test: Game Main View
+
+test_gameMainView = function( create_only )
+	print( "test_gameMainView" )
+	if create_only==nil then create_only = false end
+	--==--
+
+	local LEVEL_MGR = ACI.level_mgr
+
+	local GameView = require 'scene.game.game_view'
+	assert( type(GameView)=='table', "ERROR: loading Menu View" )
+
+	local o = GameView:new{
+		width=W, height=H,
+		sound_mgr=ACI.sound_mgr,
+		level_data=LEVEL_MGR:getLevelData(1)
+	}
+
+	if create_only then return o end
+
+	o.x, o.y = 0, 0
+
+	local f = function( event )
+		print( "GameView Event" )
+		local target = event.target
+
+		if event.type == target.GAME_OVER_EVENT then
+			print( "game results:", event.best_score, event.score, event.outcome )
+		elseif event.type == target.GAME_EXIT_EVENT then
+			print( "game exit" )
+		else
+			print( "unknown event" )
+		end
+	end
+	o:addEventListener( o.EVENT, f )
+
+	o:startGamePlay()
+
+	-- destroyObjIn( o )
+end
+
+
+--======================================================--
 -- Test: Menu Main View
 
 local function test_menuMainView()
@@ -206,13 +286,19 @@ function TestController.runTests()
 	uncomment test to run
 	--]]
 
+	--== Game Objects
+
+	-- test_ghostCharacter()
+
+
 	--== Component Tests
 
 	-- test_levelOverlay()
 	-- test_loadOverlay()
 	-- test_pauseOverlay()
 
-	test_menuMainView()
+	test_gameMainView()
+	-- test_menuMainView()
 
 	--== Scene Tests
 

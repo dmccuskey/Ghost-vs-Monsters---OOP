@@ -7,7 +7,11 @@
 -- Copyright (C) 2010 ANSCA Inc. All Rights Reserved.
 --====================================================================--
 
+--[[
+exports the following globals:
 
+* gService
+--]]
 
 --====================================================================--
 --== Ghost vs Monsters : App Controller
@@ -51,6 +55,8 @@ local LoadOverlay = require 'component.load_overlay'
 --====================================================================--
 --== Setup, Constants
 
+
+_G.gService = {}
 
 local sformat = string.format
 
@@ -314,7 +320,9 @@ function AppController:do_state_initialize( params )
 
 	-- Init Sound Manager
 
-	self._sound_mgr = SoundMgr:new()
+	o = SoundMgr:new()
+	gService.sound_mgr = o
+	self._sound_mgr = o
 
 	--== End Initialization ==--
 
@@ -378,10 +386,7 @@ end
 --== Private Methods
 
 
--- _gotoScene()
---
--- does actual Storyboard switching to new scenes
--- does setup to receive event messages from each scene
+-- _addSceneHandler()
 --
 function AppController:_addSceneHandler( scene )
 	-- print( "AppController:_addSceneHandler: ", scene )
@@ -456,7 +461,8 @@ function AppController:_currentScene_handler( event )
 	--== Events from Menu Scene
 
 	if event.type == cs.LEVEL_SELECTED then
-		self:gotoState( AppController.STATE_GAME, { level=event.data }  )
+		assert( event.level )
+		self:gotoState( AppController.STATE_GAME, { level=event.level }  )
 
 	--== Events from Game Scene
 
