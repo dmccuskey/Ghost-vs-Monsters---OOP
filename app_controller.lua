@@ -203,6 +203,8 @@ function AppController:__initComplete__()
 	self:superCall( '__initComplete__' )
 	--==--
 
+	patchTimer()
+
 	self._system_f = self:createCallback( self._systemEvent_handler )
 	self._current_scene_f = self:createCallback( self._currentScene_handler )
 
