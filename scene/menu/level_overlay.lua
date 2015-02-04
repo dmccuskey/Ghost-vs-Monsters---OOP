@@ -60,16 +60,12 @@ local LOCAL_DEBUG = false
 
 local LevelOverlay = newClass( ComponentBase, {name="Level Screen"} )
 
-
---== Class Constants
-
-
 --== Event Constants
 
 LevelOverlay.EVENT = 'level-screen-event'
 
 LevelOverlay.SELECTED = 'level-selected'
-LevelOverlay.CANCELED = 'seletion-canceled'
+LevelOverlay.CANCELED = 'selection-canceled'
 
 
 --======================================================--
