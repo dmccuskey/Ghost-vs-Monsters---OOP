@@ -20,6 +20,7 @@ local DELAY_TIME = 10000
 
 
 local levelMgr = LevelMgr:new()
+local soundMgr = SoundMgr:new()
 
 
 
@@ -43,7 +44,7 @@ local function test_levelOverlay()
 
 	local o = LevelOverlay:new{
 		levelMgr=levelMgr,
-		soundMgr=SoundMgr
+		soundMgr=soundMgr
 	}
 
 	o.x, o.y = 240, 0
