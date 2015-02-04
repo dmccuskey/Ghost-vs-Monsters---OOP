@@ -84,9 +84,13 @@ function LevelOverlay:__init__( params )
 
 	assert( params.sound_mgr and params.sound_mgr:isa(SoundMgr), "Level Overlay requires param 'sound_mgr'")
 	assert( params.level_mgr and params.level_mgr:isa(LevelMgr), "Level Overlay requires param 'level_mgr'")
+	assert( params.width and params.height, "Level Overlay requires params 'width' & 'height'")
 
 
 	--== Properties
+
+	self._width = params.width
+	self._height = params.height
 
 	-- array
 	self._levels = {}
@@ -117,11 +121,14 @@ end
 function LevelOverlay:__createView__()
 	self:superCall( '__createView__' )
 	--==--
+	local W, H = self._width , self._height
+	local H_CENTER, V_CENTER = W*0.5, H*0.5
+
 	local o, tmp
 
 	-- setup display primer
 
-	o = display.newRect( 0, 0, 480, 10)
+	o = display.newRect( 0, 0, W, 10)
 	o.anchorX, o.anchorY = 0.5, 0
 	o:setFillColor(0,0,0,0)
 	if LOCAL_DEBUG then
@@ -135,9 +142,9 @@ function LevelOverlay:__createView__()
 
 	-- Shading
 
-	o = display.newRect( 0, 0, 480, 320 )
+	o = display.newRect( 0, 0, W, H )
 	o.anchorX, o.anchorY = 0.5, 0
-	o:setFillColor( 0, 0, 0, 0.5 )
+	o:setFillColor( 0, 0, 0, 0.8 )
 	o.x, o.y = 0, 0
 
 	self:insert( o )
