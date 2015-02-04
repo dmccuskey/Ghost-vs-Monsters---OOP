@@ -75,8 +75,8 @@ local function test_levelOverlay()
 		if e.type == o.CANCELED then
 			print( "selection canceled" )
 		elseif e.type == o.SELECTED then
-			local level = e.data
-			print( "level selected", level.name, level.data )
+			local data = e.data
+			print( "level selected", data.name, data.level )
 		else
 			print( "unknown event", e.type )
 		end
