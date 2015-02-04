@@ -12,9 +12,7 @@
 --====================================================================--
 
 
-
 print( '\n\n##############################################\n\n' )
-
 
 
 --====================================================================--
@@ -43,19 +41,14 @@ _G.gMODE = 'TEST'  -- 'TEST'/'RUN'
 --====================================================================--
 
 
-local main = function()
-
-	local params = {
-		-- put here any params required for App or Test
-	}
-	if gMODE == 'TEST' then
-		Controller = require 'test_controller'
-	else
-		Controller = require 'app_controller'
-	end
-	Controller.run( params )
-
+local params = {
+	-- put here any params required for App or Test
+}
+if gMODE == 'TEST' then
+	Controller = require 'test_controller'
+else
+	Controller = require 'app_controller'
 end
 
-main()
-
+assert( Controller, "Error loading Controller" )
+Controller.run( params )
