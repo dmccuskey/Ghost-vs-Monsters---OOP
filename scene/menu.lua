@@ -26,7 +26,7 @@ local Utils = require 'lib.dmc_corona.dmc_utils'
 
 --== Scene Components
 
-local MenuView = require 'scene.menu.main_view'
+local MenuView = require 'scene.menu.menu_view'
 local LevelOverlay = require 'scene.menu.level_overlay'
 local LoadOverlay = require 'component.load_overlay'
 

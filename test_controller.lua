@@ -161,7 +161,7 @@ end
 local function test_menuMainView()
 	print( "test_menuMainView" )
 
-	local MenuView = require 'scene.menu.main_view'
+	local MenuView = require 'scene.menu.menu_view'
 	assert( type(MenuView)=='table' )
 
 	local o = MenuView:new()
