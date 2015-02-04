@@ -236,7 +236,7 @@ function MenuScene:_createLoadOverlay()
 	dg:insert( o.view )
 	self._view_load = o
 
-	f = Utils.createObjectCallback( self, self._loadView_handler )
+	f = Utils.createObjectCallback( self, self._loadViewEvent_handler )
 	o:addEventListener( o.EVENT, f )
 
 	self._view_load_f = f
@@ -281,7 +281,7 @@ function MenuScene:_createMainView()
 	dg:insert( o.view )
 	self._view_main = o
 
-	f = Utils.createObjectCallback( self, self._mainView_handler )
+	f = Utils.createObjectCallback( self, self._menuViewEvent_handler )
 	o:addEventListener( o.EVENT, f )
 
 	self._view_main_f = f
@@ -321,7 +321,7 @@ function MenuScene:_createLevelOverlay()
 	dg:insert( o.view )
 	self._view_level = o
 
-	f = Utils.createObjectCallback( self, self._levelOverlay_handler )
+	f = Utils.createObjectCallback( self, self._levelOverlayEvent_handler )
 	o:addEventListener( o.EVENT, f )
 
 	self._view_level_f = f
@@ -342,8 +342,7 @@ end
 
 
 --======================================================--
---== START: STATE MACHINE
-
+-- START: STATE MACHINE
 
 function MenuScene:state_create( next_state, params )
 	print( "MenuScene:state_create: >> ", next_state )
@@ -474,12 +473,8 @@ function MenuScene:state_complete( next_state, params )
 	end
 end
 
-
-
-
---== END: STATE MACHINE
+-- END: STATE MACHINE
 --======================================================--
-
 
 
 
@@ -487,10 +482,10 @@ end
 --== Event Handlers
 
 
--- event handler for the Load Overlay
+-- event handler for the Menu View
 --
-function MenuScene:_mainView_handler( event )
-	print( "MenuScene:_mainView_handler: ", event.type )
+function MenuScene:_menuViewEvent_handler( event )
+	print( "MenuScene:_menuViewEvent_handler: ", event.type )
 	local target = event.target
 
 	if event.type == target.SELECTED then
@@ -503,8 +498,8 @@ end
 
 -- event handler for the Load Overlay
 --
-function MenuScene:_loadView_handler( event )
-	print( "MenuScene:_loadView_handler: ", event.type )
+function MenuScene:_loadViewEvent_handler( event )
+	print( "MenuScene:_loadViewEvent_handler: ", event.type )
 	local target = event.target
 
 	if event.type == target.COMPLETE then
@@ -517,17 +512,14 @@ end
 
 -- event handler for the Level Overlay
 --
-function MenuScene:_levelOverlay_handler( event )
-	print( "MenuScene:_levelOverlay_handler: ", event.type )
+function MenuScene:_levelOverlayEvent_handler( event )
+	print( "MenuScene:_levelOverlayEvent_handler: ", event.type )
 	local target = event.target
 
 	if event.type == target.CANCELED then
-		print( "selection canceled" )
 		self:gotoState( self.STATE_NORMAL )
 	elseif event.type == target.SELECTED then
-		local level = event.data
-		local p = {level=level}
-		print( "level selected", level.name, level.data )
+		local p = {level=event.data}
 		self:gotoState( self.STATE_COMPLETE, p )
 	else
 		print( "unknown event", event.type )
