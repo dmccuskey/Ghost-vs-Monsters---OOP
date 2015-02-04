@@ -1,20 +1,18 @@
 --====================================================================--
 -- level_data.lua
 --
--- by David McCuskey
---
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
--- Copyright (C) 2011 David McCuskey. All Rights Reserved.
+-- Copyright (C) 2011-2015 David McCuskey. All Rights Reserved.
 --====================================================================--
 
 local game_data = {
 
 	--== Level 1 ==--
-	level1 = {
+	{
 		info = {
 			icon = "level1btn",
-			level = "level1",
+			name = "level1",
 			restartLevel = "level1",
 			nextLevel = "level2",
 			characterName = "ghost",
@@ -60,10 +58,10 @@ local game_data = {
 	},
 
 	--== Level 2 ==--
-	level2 = {
+	{
 		info = {
 			icon = "level2btn",
-			level = "level2",
+			name = "level2",
 			restartLevel = "level2",
 			nextLevel = "level1",
 			characterName = "ghost",
