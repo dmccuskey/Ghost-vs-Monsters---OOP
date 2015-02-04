@@ -270,7 +270,6 @@ function LevelOverlay:__undoInitComplete__()
 	self:superCall( '__undoCreateView__' )
 end
 
-
 -- END: Setup DMC Objects
 --======================================================--
 
