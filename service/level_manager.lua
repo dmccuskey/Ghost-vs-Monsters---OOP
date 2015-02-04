@@ -3,7 +3,7 @@
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
--- Copyright (C) 2011-2015 David McCuskey. All Rights Reserved.
+-- Copyright (C) 2015 David McCuskey. All Rights Reserved.
 -- Copyright (C) 2010 ANSCA Inc. All Rights Reserved.
 --====================================================================--
 
@@ -12,6 +12,7 @@
 --====================================================================--
 --== Ghost vs Monsters : Level Manager
 --====================================================================--
+
 
 -- Semantic Versioning Specification: http://semver.org/
 
@@ -24,7 +25,6 @@ local VERSION = "0.1.0"
 
 
 local Objects = require 'lib.dmc_corona.dmc_objects'
-local Utils = require 'lib.dmc_corona.dmc_utils'
 
 
 
@@ -71,6 +71,15 @@ function LevelMgr:__init__( params )
 	self._path = params.path or self.DEFAULT_DATA
 end
 
+--[[
+function LevelMgr:__undoInit__()
+	self._levels = nil
+	self._path = nil
+	--==--
+	self:superCall( '__undoInit__' )
+end
+--]]
+
 
 -- __initComplete__()
 --
@@ -86,7 +95,6 @@ function LevelMgr:__undoInitComplete__()
 	--==--
 	self:superCall( '__undoCreateView__' )
 end
-
 
 -- END: Setup DMC Objects
 --======================================================--
