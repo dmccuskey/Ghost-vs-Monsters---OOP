@@ -306,7 +306,7 @@ end
 function LevelOverlay:level1ButtonEvent_handler( event )
 	self._sound_mgr:play( self._sound_mgr.TAP )
 	local d = self._level_mgr:getLevelData( 1 )
-	self:dispatchEvent( self.SELECTED, {name=d.info.name, data=d}, {merge=false}  )
+	self:dispatchEvent( self.SELECTED, {name=d.info.name, level=d}, {merge=false}  )
 end
 
 function LevelOverlay:level2ButtonEvent_handler( event )

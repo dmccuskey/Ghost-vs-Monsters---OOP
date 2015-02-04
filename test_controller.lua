@@ -114,8 +114,8 @@ local function test_levelOverlay()
 		if e.type == o.CANCELED then
 			print( "selection canceled" )
 		elseif e.type == o.SELECTED then
-			local data = e.data
-			print( "level selected", data.name, data.level )
+			local result = e.data
+			print( "level selected", result.name, result.level )
 		else
 			print( "unknown event", e.type )
 		end
@@ -169,16 +169,16 @@ end
 local function test_pauseOverlay()
 	print( "test_pauseOverlay" )
 
-	local PauseScreen = require 'component.pause_overlay'
-	assert( type(PauseScreen)=='table' )
+	local PauseOverlay = require 'component.pause_overlay'
+	assert( type(PauseOverlay)=='table' )
 
-	local o = PauseScreen:new{
+	local o = PauseOverlay:new{
 		width=W, height=H
 	}
 	o.x, o.y = H_CENTER, 0
 
 	local f = function( e )
-		print( "PauseScreen Event" )
+		print( "PauseOverlay Event" )
 
 		if e.type == o.ACTIVE then
 			print( "is active:", e.is_active )

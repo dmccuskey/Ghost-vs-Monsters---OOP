@@ -1,5 +1,5 @@
 --====================================================================--
--- Scene/menu.lua
+-- scene/menu.lua
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
@@ -12,6 +12,11 @@
 --====================================================================--
 --== Ghost vs Monsters : Menu Scene
 --====================================================================--
+
+
+-- Semantic Versioning Specification: http://semver.org/
+
+local VERSION = "0.2.0"
 
 
 
@@ -201,7 +206,9 @@ function MenuScene:_createLoadOverlay()
 	local dg = self._dg_overlay
 	local o, f
 
-	o = LoadOverlay:new()
+	o = LoadOverlay:new{
+	width=W, height=H
+	}
 	o.x, o.y = H_CENTER, 0
 
 	dg:insert( o.view )
@@ -373,8 +380,8 @@ function MenuScene:_menuViewEvent_handler( event )
 	local target = event.target
 
 	if event.type == target.SELECTED then
-		local data = event.data
-		self:gotoState( self.STATE_COMPLETE, {level=data.level} )
+		local result = event.data
+		self:gotoState( self.STATE_COMPLETE, {level=result.level} )
 	else
 		print( "MenuScene:_menuViewEvent_handler unknown event", event.type )
 	end
@@ -413,7 +420,7 @@ scene.LEVEL_SELECTED = 'level-selected'
 -- START: composer scene setup
 
 function scene:create( event )
-	-- print( "scene:create" )
+	-- print( "Menu Scene:create" )
 	MenuScene.view = self.view
 	MenuScene:__init__( event.params )
 	MenuScene:__createView__()
@@ -421,22 +428,22 @@ function scene:create( event )
 end
 
 function scene:show( event )
-	-- print( "scene:show" )
+	-- print( "Menu Scene:show" )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
 function scene:hide( event )
-	print( "scene:hide" )
-	-- Utils.print( event )
+	print( "Menu Scene:hide" )
+	Utils.print( event )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
 function scene:destroy( event )
-	print( "scene:destroy" )
+	print( "Menu Scene:destroy" )
 	Utils.print( event )
 	MenuScene:__undoInitComplete__()
 	MenuScene:__undoCreateView__()
