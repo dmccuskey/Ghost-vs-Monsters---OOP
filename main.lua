@@ -53,15 +53,16 @@ _G.gMODE = 'TEST'  -- 'TEST'/'RUN'
 --====================================================================--
 
 
-local params = {
-	-- put here any params required for App or Test
-	open_feint=open_feint_params
-}
 if gMODE == 'TEST' then
 	Controller = require 'test_controller'
 else
 	Controller = require 'app_controller'
 end
 
-assert( Controller, "Error loading Controller" )
+assert( Controller, "GvsM Main: Error loading Controller" )
+
+local params = {
+	-- put here any params required for App or Test here
+	open_feint=open_feint_params
+}
 Controller.run( params )
