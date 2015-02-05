@@ -1326,7 +1326,7 @@ function GameView:state_create( next_state, params )
 	if next_state == GameView.STATE_INIT then
 		self:do_state_init( params )
 	else
-		print( "[WARNING] GameView::state_create : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:state_create", tostring( next_state ) )
 	end
 end
 
@@ -1366,7 +1366,7 @@ function GameView:state_init( next_state, params )
 	if next_state == GameView.TO_NEW_ROUND then
 		self:do_trans_new_round( params )
 	else
-		print( "[WARNING] GameView::state_create : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:state_create", tostring( next_state ) )
 	end
 end
 
@@ -1407,7 +1407,7 @@ function GameView:trans_new_round( next_state, params )
 	if next_state == GameView.STATE_NEW_ROUND then
 		self:do_state_new_round( params )
 	else
-		print( "[WARNING] GameView::trans_new_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:trans_new_round", tostring( next_state ) )
 	end
 end
 
@@ -1429,7 +1429,7 @@ function GameView:state_new_round( next_state, params )
 	if next_state == GameView.TO_AIMING_SHOT then
 		self:do_trans_aiming_shot( params )
 	else
-		print( "[WARNING] GameView::state_new_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:state_new_round", tostring( next_state ) )
 	end
 end
 
@@ -1462,7 +1462,7 @@ function GameView:trans_aiming_shot( next_state, params )
 	if next_state == GameView.STATE_AIMING_SHOT then
 		self:do_state_aiming_shot( params )
 	else
-		print( "[WARNING] GameView::trans_aiming_shot : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:trans_aiming_shot", tostring( next_state ) )
 	end
 end
 
@@ -1508,7 +1508,7 @@ function GameView:trans_shot_in_play( next_state, params )
 	if next_state == GameView.STATE_SHOT_IN_PLAY then
 		self:do_state_shot_in_play( params )
 	else
-		print( "[WARNING] GameView::trans_shot_in_play : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:trans_shot_in_play", tostring( next_state ) )
 	end
 end
 
@@ -1541,7 +1541,7 @@ function GameView:state_shot_in_play( next_state, params )
 	if next_state == GameView.TO_END_ROUND then
 		self:do_trans_end_round( params )
 	else
-		print( "[WARNING] GameView::state_shot_in_play : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:state_shot_in_play", tostring( next_state ) )
 	end
 end
 
@@ -1566,7 +1566,7 @@ function GameView:trans_end_round( next_state, params )
 	if next_state == GameView.STATE_END_ROUND then
 		self:do_state_end_round( params )
 	else
-		print( "[WARNING] GameView::trans_end_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:trans_end_round", tostring( next_state ) )
 	end
 end
 
@@ -1585,7 +1585,7 @@ function GameView:state_end_round( next_state, params )
 	if next_state == GameView.TO_CALL_ROUND then
 		self:do_trans_call_round( params )
 	else
-		print( "[WARNING] GameView::state_end_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:state_end_round", tostring( next_state ) )
 	end
 end
 
@@ -1620,7 +1620,7 @@ function GameView:trans_call_round( next_state, params )
 	elseif next_state == GameView.STATE_END_GAME then
 		self:do_state_end_game( params )
 	else
-		print("[WARNING] GameView::trans_call_round : " .. tostring( next_state ) )
+		print("[WARNING] GameView:trans_call_round", tostring( next_state ) )
 	end
 end
 
@@ -1660,7 +1660,7 @@ function GameView:state_end_game( next_state, params )
 	if next_state == GameView.STATE_INIT then
 		self:do_state_init( params )
 	else
-		print( "[WARNING] GameView::state_end_game : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:state_end_game", tostring( next_state ) )
 	end
 end
 

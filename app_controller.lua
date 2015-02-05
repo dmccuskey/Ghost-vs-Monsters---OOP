@@ -417,7 +417,7 @@ function AppController:_currentScene_handler( event )
 	--== Events from Menu Scene
 
 	if event.type == cs.LEVEL_SELECTED then
-		assert( event.level )
+		assert( event.level, "AppController: level missing from Menu Scene" )
 		self:gotoState( AppController.STATE_GAME, { level=event.level }  )
 
 	--== Events from Game Scene
@@ -426,7 +426,7 @@ function AppController:_currentScene_handler( event )
 		self:gotoState( AppController.STATE_MENU )
 
 	else
-		print( "WARNING AppController:_currentScene_handler : " .. tostring( event.type ) )
+		print( "[WARNING] AppController:_currentScene_handler : ", tostring( event.type ) )
 	end
 end
 
@@ -442,7 +442,7 @@ function AppController:state_create( next_state, params )
 	if next_state == AppController.STATE_INIT then
 		self:do_state_initialize( params )
 	else
-		print( "WARNING::state_create : " .. tostring( next_state ) )
+		print( "[WARNING] AppController:state_create : ", tostring( next_state ) )
 	end
 end
 
@@ -512,7 +512,7 @@ function AppController:state_initialize( next_state, params )
 	if next_state == AppController.STATE_MENU then
 		self:do_state_menu( params )
 	else
-		print( "WARNING::state_initialize : " .. tostring( next_state ) )
+		print( "[WARNING] AppController:state_initialize : " .. tostring( next_state ) )
 	end
 end
 
@@ -542,7 +542,7 @@ function AppController:state_menu( next_state, params )
 	if next_state == AppController.STATE_GAME then
 		self:do_state_game( params )
 	else
-		print( "WARNING::state_menu : " .. tostring( next_state ) )
+		print( "[WARNING] AppController:state_menu : " .. tostring( next_state ) )
 	end
 end
 
@@ -573,7 +573,7 @@ function AppController:state_game( next_state, params )
 	if next_state == AppController.STATE_MENU then
 		self:do_state_menu( params )
 	else
-		print( "WARNING::state_game : " .. tostring( next_state ) )
+		print( "[WARNING] AppController:state_game : " .. tostring( next_state ) )
 	end
 end
 

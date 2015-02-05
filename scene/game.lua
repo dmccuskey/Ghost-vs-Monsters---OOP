@@ -313,7 +313,7 @@ function GameScene:_loadViewEvent_handler( event )
 	if event.type == target.COMPLETE then
 		self:gotoState( self.STATE_PLAY )
 	else
-		print( "GameScene:_loadViewEvent_handler unknown event", event.type )
+		print( "[WARNING] GameScene:_loadViewEvent_handler", event.type )
 	end
 
 end
@@ -339,7 +339,7 @@ function GameScene:gameViewEvent_handler( event )
 		self:gotoState( self.STATE_COMPLETE )
 
 	else
-		print( "[WARNING] GameScene:gameViewEvent_handler", event.type )
+		print( "[WARNING] GameScene:_gameViewEvent_handler", event.type )
 	end
 
 end
@@ -357,7 +357,7 @@ function GameScene:_gameOverEvent_handler( event )
 	if event.type == target.COMPLETE then
 		self:gotoState( self.STATE_PLAY )
 	else
-		print( "GameScene:_loadViewEvent_handler unknown event", event.type )
+		print( "[WARNING] GameScene:_loadViewEvent_handler", event.type )
 	end
 
 end
@@ -377,7 +377,7 @@ function GameScene:state_create( next_state, params )
 	elseif next_state == GameScene.STATE_PLAY then
 		self:do_state_play( params )
 	else
-		print( "WARNING::state_create : " .. tostring( next_state ) )
+		print( "[WARNING] GameScene:state_create", tostring( next_state ) )
 	end
 end
 
@@ -403,7 +403,7 @@ function GameScene:state_loading( next_state, params )
 	elseif next_state == GameScene.STATE_PLAY then
 		self:do_state_play( params )
 	else
-		print( "WARNING::state_loading : " .. tostring( next_state ) )
+		print( "[WARNING] GameScene:state_loading", tostring( next_state ) )
 	end
 end
 
@@ -426,7 +426,7 @@ function GameScene:state_play( next_state, params )
 	elseif next_state == GameScene.STATE_COMPLETE then
 		self:do_state_complete( params )
 	else
-		print( "[WARNING] GameScene::state_play : " .. tostring( next_state ) )
+		print( "[WARNING] GameScene::state_play", tostring( next_state ) )
 	end
 end
 
@@ -453,7 +453,7 @@ function GameScene:state_complete( next_state, params )
 	if next_state == GameScene.STATE_LOADING then
 		self:do_state_loading( params )
 	else
-		print( "[WARNING] GameScene::state_complete : " .. tostring( next_state ) )
+		print( "[WARNING] GameScene:state_complete", tostring( next_state ) )
 	end
 end
 
@@ -491,7 +491,8 @@ function scene:show( event )
 	Utils.print( event )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
-		-- e.width, e.height, e.level_data
+		-- event information:
+		-- event.width, event.height, event.level_data
 		GameScene:gotoState( GameScene.STATE_LOADING, {level=event.level_data} )
 	end
 end
