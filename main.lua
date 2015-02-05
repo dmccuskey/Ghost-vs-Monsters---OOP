@@ -32,6 +32,18 @@ local VERSION = "0.2.0"
 
 local Controller = nil -- set in main()
 
+local open_feint_params = nil
+--[[
+-- uncomment this section and put in Open Feint info
+-- to enable Open Feint
+open_feint_params = nil {
+	app_key='your-app-key',
+	app_secret='your-app-secret',
+	app_title='Ghost vs. Monsters',
+	app_id='your-app-id',
+}
+--]]
+
 _G.gMODE = 'TEST'  -- 'TEST'/'RUN'
 
 
@@ -43,6 +55,7 @@ _G.gMODE = 'TEST'  -- 'TEST'/'RUN'
 
 local params = {
 	-- put here any params required for App or Test
+	open_feint=open_feint_params
 }
 if gMODE == 'TEST' then
 	Controller = require 'test_controller'

@@ -44,6 +44,8 @@ local Utils = require 'lib.dmc_corona.dmc_utils'
 local LevelMgr = require 'service.level_manager'
 local SoundMgr = require 'service.sound_manager'
 
+local OpenFeint = nil
+
 --== App Components ==--
 
 local LoadOverlay = require 'component.load_overlay'
@@ -145,6 +147,8 @@ function AppController:__init__( params )
 
 	self._current_scene = nil
 	self._current_scene_f = nil
+
+	self._open_feint_p = params.open_feint
 
 	--== Services ==--
 
@@ -315,6 +319,12 @@ function AppController:do_state_initialize( params )
 	o = SoundMgr:new()
 	gService.sound_mgr = o
 	self._sound_mgr = o
+
+	-- Init Open Feint
+
+	if self._open_feint_p then
+		self:_loadOpenFeint( self._open_feint_p )
+	end
 
 	--== End Initialization ==--
 
@@ -497,15 +507,6 @@ function AppController:_currentScene_handler( event )
 		print( "WARNING AppController:_currentScene_handler : " .. tostring( event.type ) )
 	end
 end
-
-
-
-
--- Uncomment below code and replace init() arguments with valid ones to enable openfeint
---[[
-local openfeint = require ("openfeint")
-openfeint.init( "App Key Here", "App Secret Here", "Ghosts vs. Monsters", "App ID Here" )
-]]--
 
 
 
