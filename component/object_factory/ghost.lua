@@ -491,13 +491,14 @@ function Ghost:do_state_flying( params )
 
 	self._sound_mgr:play( self._sound_mgr.WEE )
 
+	self:dispatchEvent( Ghost.STATE_FLYING )
 end
 
 function Ghost:state_flying( next_state, params )
 	print( "Ghost:state_flying: >> ", next_state, params )
 
 	if next_state == Ghost.STATE_HIT then
-		self:do_state_living( params )
+		self:do_state_hit( params )
 	elseif next_state == Ghost.STATE_DYING then
 		self:do_state_dying( params )
 	else
@@ -524,7 +525,7 @@ function Ghost:do_state_hit( params )
 	-- visual - prepare poof
 	local pList = { 'wood', 'stone', 'tomb', 'monster' }
 	local delay = 1700
-	if Utils.propertyIn( pList, event.other.myName ) then
+	if Utils.propertyIn( pList, params.event.other.myName ) then
 		delay = 500
 	end
 	timer.performWithDelay( delay, function() self:gotoState( Ghost.STATE_DYING ) end, 1 )
