@@ -48,6 +48,8 @@ local mCeil = math.ceil
 local mAtan2 = math.atan2
 local mPi = math.pi
 local mSqrt = math.sqrt
+local tinsert = table.insert
+local tremove = table.remove
 
 local LOCAL_DEBUG = true
 
@@ -208,8 +210,6 @@ function GameView:__init__( params )
 	self._level_data = params.level_data
 	self.__game_is_active = false
 
-	self._physics_is_active = false
-
 	self._tracking_timer = nil
 
 	self._screen_position = ""	-- "left" or "right"
@@ -217,7 +217,7 @@ function GameView:__init__( params )
 	-- if we are panning the scene
 	self._is_panning = false
 
-	self.lifeIcons = {}
+	self._life_icons = {}
 	self.__game_lives = 0
 	self._enemy_count = 0
 
@@ -237,7 +237,7 @@ function GameView:__init__( params )
 	self._dg_shot = nil -- shot feedback items
 	self._dg_ph_game = nil -- physics game items
 	self._dg_ph_fore = nil -- physics foreground items
-	self._dg_ph_trail = nil -- physics trail
+	self._dg_dot_trail = nil -- trail of dots
 
 	--== Display Objects
 
@@ -251,35 +251,17 @@ function GameView:__init__( params )
 	self._pause_overlay_f = nil
 
 	self._txt_continue = nil
-	self._continueTextTimer = nil
+	self._txt_continue_timer = nil
 
 	self._txt_score = nil
-
-	-- -- start physics engine here, so it doesn't crash
-	-- self:_startPhysics( true )
-	-- physics.setDrawMode( "normal" )	-- set to "normal" "debug" or "hybrid" to see collision boundaries
-	-- physics.setGravity( 0, 11 )	--> 0, 9.8 = Earth-like gravity
 
 	self:setState( GameView.STATE_CREATE )
 end
 
-function GameView:_undoInit()
-
-	if self._character ~= nil then
-		self._character = nil
-	end
-	if self._continueTextTimer then
-		timer.cancel( self._continueTextTimer )
-		self._continueTextTimer = nil
-	end
-	self:_stopTrackingTimer()
-	self:_clearTrackingDots()
-
-	self.level_data = nil -- setter
-
-	--==--
-	self:superCall( '__undoCreateView__' )
-end
+-- function GameView:_undoInit()
+-- 	--==--
+-- 	self:superCall( '__undoCreateView__' )
+-- end
 
 
 
@@ -342,8 +324,6 @@ function GameView:__createView__()
 	dg:insert( o )
 	self._dg_shot = o
 
-	self:_createShotFeedback()
-
 	-- physics game items
 
 	o = display.newGroup()
@@ -360,7 +340,7 @@ function GameView:__createView__()
 
 	o = display.newGroup()
 	dg:insert( o )
-	self._dg_ph_trail = o
+	self._dg_dot_trail = o
 
 	--== Setup Overlay Items
 
@@ -415,9 +395,9 @@ function GameView:__undoCreateView__()
 	o:removeSelf()
 	self._txt_score  = nil
 
-	o = self._dg_ph_trail
+	o = self._dg_dot_trail
 	o:removeSelf()
-	self._dg_ph_trail = nil
+	self._dg_dot_trail = nil
 
 	o = self._dg_ph_fore
 	o:removeSelf()
@@ -464,6 +444,9 @@ function GameView:__initComplete__()
 	--==--
 	local o, f
 
+	self:_createShotFeedback()
+	self:_createLifeIndicator()
+
 	f = self:createCallback( self._ghostEvent_handler )
 	self._character_f = f
 
@@ -477,8 +460,6 @@ function GameView:__initComplete__()
 
 	Runtime:addEventListener( 'touch', self )
 	Runtime:addEventListener( 'enterFrame', self )
-
-	self:_pausePhysics()
 
 end
 function GameView:__undoInitComplete__()
@@ -499,6 +480,13 @@ function GameView:__undoInitComplete__()
 
 	self._enemy_f = nil
 	self._character_f = nil
+
+	self:_destroyLifeIndicator()
+	self:_destroyShotFeedback()
+
+	self:_stopBlinkingText()
+	self:_stopTrackingTimer()
+	self:_clearTrackingDots()
 
 	--==--
 	self:superCall( '__undoCreateView__' )
@@ -593,9 +581,9 @@ function GameView.__setters:_game_lives( value )
 	self.__game_lives = value
 
 	-- update icons
-	for i, item in ipairs( self.lifeIcons ) do
+	for i, item in ipairs( self._life_icons ) do
 		if i > self.__game_lives then
-			item.alpha = 0.3
+			item.alpha = 0.4
 		end
 	end
 end
@@ -625,13 +613,10 @@ end
 
 
 function GameView.__setters:_is_tracking_character( value )
-	print("GameView:_is_tracking_character ", value )
+	-- print("GameView:_is_tracking_character ", value )
 	assert( type(value)=='boolean' )
 
-	local dg = self._dg_ph_trail
-
 	if value then
-		self:_clearTrackingDots()
 		self:_startTrackingTimer()
 	else
 		self:_stopTrackingTimer()
@@ -643,40 +628,48 @@ end
 -- getter/setter: _text_is_blinking()
 --
 function GameView.__getters:_text_is_blinking()
-	return ( self._continueTextTimer ~= nil )
+	return ( self._txt_continue_timer ~= nil )
 end
 function GameView.__setters:_text_is_blinking( value )
 	--print("GameView.__setters:_text_is_blinking")
-
-	local o = self._txt_continue
-
-	-- stop any flashing currently happening
-	if self._continueTextTimer ~= nil then
-		timer.cancel( self._continueTextTimer )
-		self._continueTextTimer = nil
-	end
-
-	if not value then
-		o.isVisible = false
+	assert( type(value)=='boolean' )
+	--==--
+	self._txt_continue.isVisible = value
+	if value then
+		self:_startBlinkingText()
 	else
-		local continueBlink = function()
-
-			local startBlinking = function()
-				o.isVisible = not o.isVisible
-			end
-			self._continueTextTimer = timer.performWithDelay( 350, startBlinking, 0 )
-		end
-		timer.performWithDelay( 300, continueBlink, 1 )
+		self:_stopBlinkingText()
 	end
-
 end
+
+
+function GameView:_startBlinkingText()
+	local o = self._txt_continue
+	self:_stopBlinkingText()
+	local startBlinking = function()
+		local continueBlink = function()
+			o.isVisible = not o.isVisible
+		end
+		self._txt_continue_timer = timer.performWithDelay( 350, continueBlink, 0 )
+	end
+	self._txt_continue_timer = timer.performWithDelay( 300, startBlinking, 1 )
+end
+
+function GameView:_stopBlinkingText()
+	if not self._txt_continue_timer then return end
+	timer.cancel( self._txt_continue_timer )
+	self._txt_continue_timer = nil
+end
+
+
+
 
 
 --== Methods ==--
 
 
 function GameView:_addGameObject( item, group, is_physics )
-	print( "GameView:_addGameObject", item, is_physics )
+	-- print( "GameView:_addGameObject", item, is_physics )
 	local ENEMY_NAME = self._level_data.info.enemyName
 	local o, d
 
@@ -721,7 +714,7 @@ end
 
 
 function GameView:_removeGameObject( obj, is_physics )
-	print( "GameView:_removeGameObject", item, is_physics )
+	-- print( "GameView:_removeGameObject", item, is_physics )
 	local ENEMY_NAME = self._level_data.info.enemyName
 	local d
 
@@ -751,12 +744,13 @@ end
 -- loop through game data items and put on stage
 --
 function GameView:_addDataItems( data, group, params )
-	print( "GameView:_addDataItems" )
+	-- print( "GameView:_addDataItems" )
+	data = data or {}
 	params = params or {}
 	if params.is_physics==nil then params.is_physics=false end
 	--==--
 	for _, item in ipairs( data ) do
-		print( _, item.name, item )
+		-- print( _, item.name, item )
 		-- item is one of the entries in our data file
 		self:_addGameObject( item, group, params.is_physics )
 	end
@@ -767,12 +761,12 @@ end
 -- loop through display groups and remove their items
 --
 function GameView:_removeDataItems( group, params )
-	print( "GameView:_removeDataItems" )
+	-- print( "GameView:_removeDataItems" )
 	local params = params or {}
 	if params.is_physics==nil then params.is_physics=false end
 	--==--
 	for i = group.numChildren, 1, -1 do
-		print( group[i] )
+		-- print( group[i] )
 		self:_removeGameObject( group[i], params.is_physics )
 	end
 end
@@ -782,10 +776,7 @@ end
 --
 function GameView:_createBackgroundItems()
 	-- print( "GameView:_createBackgroundItems" )
-	local data = self._level_data.backgroundItems
-	if data then
-		self:_addDataItems( data, self._dg_bg )
-	end
+	self:_addDataItems( self._level_data.backgroundItems, self._dg_bg )
 end
 function GameView:_destroyBackgroundItems()
 	-- print( "GameView:_destroyBackgroundItems" )
@@ -796,10 +787,7 @@ end
 --
 function GameView:_createPhysicsBackgroundItems()
 	-- print( "GameView:_createPhysicsBackgroundItems" )
-	local data = self._level_data.physicsBackgroundItems
-	if data then
-		self:_addDataItems( data, self._dg_ph_bg, {is_physics=true} )
-	end
+	self:_addDataItems( self._level_data.physicsBackgroundItems, self._dg_ph_bg, {is_physics=true} )
 end
 function GameView:_destroyPhysicsBackgroundItems()
 	-- print( "GameView:_destroyPhysicsBackgroundItems" )
@@ -809,14 +797,11 @@ end
 -- _createPhysicsGameItems()
 --
 function GameView:_createPhysicsGameItems()
-	print( "GameView:_createPhysicsGameItems" )
-	local data = self._level_data.physicsGameItems
-	if data then
-		self:_addDataItems( data, self._dg_ph_game, {is_physics=true} )
-	end
+	-- print( "GameView:_createPhysicsGameItems" )
+	self:_addDataItems( self._level_data.physicsGameItems, self._dg_ph_game, {is_physics=true} )
 end
 function GameView:_destroyPhysicsGameItems()
-	print( "GameView:_destroyPhysicsGameItems" )
+	-- print( "GameView:_destroyPhysicsGameItems" )
 	self:_removeDataItems( self._dg_ph_game, {is_physics=true} )
 end
 
@@ -824,13 +809,10 @@ end
 -- _createPhysicsForegroundItems()
 --
 function GameView:_createPhysicsForegroundItems()
-	local data = self._level_data.physicsForgroundItems
-	if data then
-		self:_addDataItems( data, self._dg_ph_fore, {is_physics=true} )
-	end
+	self:_addDataItems( self._level_data.physicsForgroundItems, self._dg_ph_fore, {is_physics=true} )
 end
 function GameView:_destroyPhysicsForegroundItems()
-	print( "GameView:_destroyPhysicsForegroundItems" )
+	-- print( "GameView:_destroyPhysicsForegroundItems" )
 	self:_removeDataItems( self._dg_ph_fore, {is_physics=true} )
 end
 
@@ -863,7 +845,7 @@ end
 --== Tracking
 
 function GameView:_clearTrackingDots()
-	local dg = self._dg_ph_trail
+	local dg = self._dg_dot_trail
 	for i = dg.numChildren,1,-1 do
 		local o = dg[i]
 		o.parent:remove( o )
@@ -871,10 +853,11 @@ function GameView:_clearTrackingDots()
 end
 
 function GameView:_startTrackingTimer()
-	local dg = self._dg_ph_trail
+	local dg = self._dg_dot_trail
 	local char = self._character
 
 	self:_stopTrackingTimer()
+	self:_clearTrackingDots()
 
 	local startDots = function()
 		local odd = true
@@ -889,7 +872,6 @@ function GameView:_startTrackingTimer()
 	end
 	startDots()
 end
-
 
 function GameView:_stopTrackingTimer()
 	if not self._tracking_timer then return end
@@ -923,6 +905,20 @@ function GameView:_createShotFeedback()
 	self._shot_arrow = o
 end
 
+-- _destroyShotFeedback()
+--
+function GameView:_destroyShotFeedback()
+	local o
+
+	o = self._shot_orb
+	o:removeSelf()
+	self._shot_orb = nil
+
+	o = self._shot_arrow
+	o:removeSelf()
+	self._shot_arrow = nil
+
+end
 
 
 
@@ -968,20 +964,17 @@ end
 
 
 function GameView:_startPhysics( param )
-	print( "GameView:_startPhysics" )
-	self._physics_is_active = true
+	-- print( "GameView:_startPhysics" )
 	physics.start( param )
 end
 
 function GameView:_pausePhysics()
 	--print( "GameView:_pausePhysics" )
-	self._physics_is_active = false
 	physics.pause()
 end
 
 function GameView:_stopPhysics()
-	print( "GameView:_stopPhysics" )
-	self._physics_is_active = false
+	-- print( "GameView:_stopPhysics" )
 	physics.stop()
 end
 
@@ -991,13 +984,11 @@ end
 
 function GameView:_createGhost()
 	--print( "GameView:_createGhost" )
-	local dg, o, item
+	local item = self._level_data.info.characterName
 
-	dg = self._dg_ph_fore
-	item = self._level_data.info.characterName
-	o = ObjectFactory.create( item, {game_engine=self} )
+	local o = ObjectFactory.create( item, {game_engine=self} )
 
-	dg:insert( o.view )
+	self._dg_ph_fore:insert( o.view )
 	self._character = o
 
 	o:addEventListener( o.EVENT, self._character_f )
@@ -1010,111 +1001,79 @@ function GameView:_createGhost()
 end
 
 function GameView:_destroyGhost()
-	print( "GameView:_destroyGhost" )
-	local o
-
-	o = self._character
+	-- print( "GameView:_destroyGhost" )
+	local o = self._character
 
 	assert( physics.removeBody( o.view ) )
+
 	o:removeEventListener( o.EVENT, self._character_f )
 
 	o:removeSelf()
+
 	self._character = nil
 end
 
 
 
--- _createGameDetailsHUD()
+-- _createLifeIndicator()
 --
-function GameView:_createGameDetailsHUD()
-
-	local W, H = self._width , self._height
-	local H_CENTER, V_CENTER = W*0.5, H*0.5
-
-	local dg, o, tmp
-
-	local dg = self._dg_overlay
-	local hudRefs = self.hudRefs
-	local o
-
-	-- TWO BLACK RECTANGLES AT TOP AND BOTTOM (for those viewing from iPad)
-	img = display.newRect( 0, -160, 480, 160 )
-	img:setFillColor( 0, 0, 0, 255 )
-	dg:insert( img )
-
-	img = display.newRect( 0, 320, 480, 160 )
-	img:setFillColor( 0, 0, 0, 255 )
-	dg:insert( img )
-
+function GameView:_createLifeIndicator()
 
 	-- LIVES DISPLAY
-	local y_base = 18
-	local x_offset = 25
-	local prev
+	local X_BASE, Y_BASE = 25, 20
+	local X_OFFSET = 25
 
-	o = ObjectFactory.create( "life-icon" )
-	o.x = 20; o.y = y_base
+	local dg = self._dg_overlay
+	local list = self._life_icons
+	local o, tmp
+
+	-- TWO BLACK RECTANGLES AT TOP AND BOTTOM (for those viewing from iPad)
+	-- img = display.newRect( 0, -160, 480, 160 )
+	-- img:setFillColor( 0, 0, 0, 255 )
+	-- dg:insert( img )
+
+	-- img = display.newRect( 0, 320, 480, 160 )
+	-- img:setFillColor( 0, 0, 0, 255 )
+	-- dg:insert( img )
+
+	o = ObjectFactory.create( 'life-icon' )
+	o.x, o.y = X_BASE, Y_BASE
 	dg:insert( o )
-	table.insert( self.lifeIcons, img )
-	prev = img
+	tinsert( list, o )
 
-	img = ObjectFactory.create( "life-icon" )
-	img.x = prev.x + x_offset; img.y = y_base
-	dg:insert( img )
-	table.insert( self.lifeIcons, img )
-	prev = img
+	tmp = o
+	o = ObjectFactory.create( "life-icon" )
+	o.x, o.y = tmp.x + X_OFFSET, Y_BASE
+	dg:insert( o )
+	tinsert( list, o )
 
-	img = ObjectFactory.create( "life-icon" )
-	img.x = prev.x + x_offset; img.y = y_base
-	dg:insert( img )
-	table.insert( self.lifeIcons, img )
-	prev = img
+	tmp = o
+	o = ObjectFactory.create( "life-icon" )
+	o.x, o.y = tmp.x + X_OFFSET, Y_BASE
+	dg:insert( o )
+	tinsert( list, o )
 
-	img = ObjectFactory.create( "life-icon" )
-	img.x = prev.x + x_offset; img.y = y_base
-	dg:insert( img )
-	table.insert( self.lifeIcons, img )
-
-
+	tmp = o
+	o = ObjectFactory.create( "life-icon" )
+	o.x, o.y = tmp.x + X_OFFSET, Y_BASE
+	dg:insert( o )
+	tinsert( list, o )
 
 end
 
-function GameView:_removeGameDetailsHUD()
+function GameView:_destroyLifeIndicator()
 
-	local hudRefs = self.hudRefs
-	local group = self.layer.details
-	local o
-
-	-- Pause Button HUD
-	o = hudRefs[ "pause-hud" ]
-	hudRefs[ "pause-hud" ] = nil
-	o:removeEventListener( "change", Utils.createObjectCallback( self, self.pauseScreenTouchHandler ) )
-	--obj:removeSelf() TODO: after removeSelf is done in pause hud
-	o:removeSelf()
-
-	-- continue text
-	o = self._txt_continue
-	o:removeSelf()
-	self._txt_continue = nil
-
-	-- score text
-	o = self._txt_score
-	o:removeSelf()
-	self._txt_score= nil
-
-
-	-- life icons
-	local t = self.lifeIcons
-	for i = #t, 1, -1 do
-		t[i]:removeSelf()
-		table.remove( t, i )
+	local list = self._life_icons
+	for i = #list, 1, -1 do
+		list[i]:removeSelf()
+		tremove( list, i )
 	end
-	self.lifeIcons = nil
+	self._life_icons = nil
 
-	-- black rectangles
-	for i = group.numChildren, 1, -1 do
-		group:remove( i )
-	end
+	-- -- black rectangles
+	-- for i = group.numChildren, 1, -1 do
+	-- 	group:remove( i )
+	-- end
 
 end
 
@@ -1126,7 +1085,7 @@ end
 
 
 function GameView:_ghostEvent_handler( event )
-	print( "GameView:_ghostEvent_handler", event.type )
+	-- print( "GameView:_ghostEvent_handler", event.type )
 	local target = event.target
 
 	if event.type == target.STATE_BORN then
@@ -1134,6 +1093,9 @@ function GameView:_ghostEvent_handler( event )
 
 	elseif event.type == target.STATE_LIVING then
 		self:gotoState( GameView.STATE_NEW_ROUND )
+
+	elseif event.type == target.STATE_AIMING then
+			-- pass
 
 	elseif event.type == target.STATE_FLYING then
 		self._is_tracking_character = true
@@ -1156,7 +1118,7 @@ end
 
 
 function GameView:_enemyEvent_handler( event )
-	print( "GameView:_enemyEvent_handler", event.type )
+	-- print( "GameView:_enemyEvent_handler", event.type )
 	local target = event.target
 
 	if event.type == target.STATE_DEAD then
@@ -1175,7 +1137,7 @@ end
 
 
 function GameView:_pauseOverlayEvent_handler( event )
-	print( "GameView:_pauseOverlayEvent_handler" )
+	-- print( "GameView:_pauseOverlayEvent_handler" )
 	local target = event.target
 
 	if event.type == target.ACTIVE then
@@ -1191,24 +1153,21 @@ function GameView:_pauseOverlayEvent_handler( event )
 end
 
 
-
-
 function GameView:touch( event )
-	print( "GameView:touch", event.phase )
+	-- print( "GameView:touch", event.phase )
 
 	local mCeil = math.ceil
 	local mAtan2 = math.atan2
 	local mPi = math.pi
 	local mSqrt = math.sqrt
 
+	local ghost = self._character
+
 	local phase = event.phase
 	local x, xStart = event.x, event.xStart
 	local y, yStart = event.y, event.yStart
 
 	local curr_state = self:getState()
-	print( curr_state)
-
-	local ghostObject = self._character
 
 	--== TOUCH HANDLING, active game
 	if self._game_is_active then
@@ -1220,10 +1179,8 @@ function GameView:touch( event )
 		-- RELEASE THE DUDE
 		elseif phase == 'ended' and curr_state == GameView.AIMING_SHOT then
 
-			local x = event.x
-			local y = event.y
-			local xF = (-1 * (x - ghostObject.x)) * 2.15	--> 2.75
-			local yF = (-1 * (y - ghostObject.y)) * 2.15	--> 2.75
+			local xF = (-1 * (x - ghost.x)) * 2.15	--> 2.75
+			local yF = (-1 * (y - ghost.y)) * 2.15	--> 2.75
 
 			local data = { xForce=xF, yForce=yF  }
 			self:gotoState( GameView.TO_SHOT_IN_PLAY, {shot=data} )
@@ -1234,22 +1191,22 @@ function GameView:touch( event )
 			local newPosition, diff
 
 			-- check which direction we're swiping
-			if event.xStart > event.x then
+			if xStart > x then
 				newPosition = GameView.RIGHT_POS
-			elseif event.xStart < event.x then
+			elseif xStart < x then
 				newPosition = GameView.LEFT_POS
 			end
 
 			-- update screen
 			if newPosition == GameView.RIGHT_POS and self._screen_position == "left" then
-				diff = event.xStart - event.x
+				diff = xStart - x
 				if diff >= 100 then
 					self:_panCamera( newPosition, 700 )
 				else
 					self:_panCamera( self._screen_position, 100 )
 				end
 			else
-				diff = event.x - event.xStart
+				diff = x - xStart
 				if diff >= 100 then
 					self:_panCamera( newPosition, 700 )
 				else
@@ -1272,26 +1229,25 @@ function GameView:touch( event )
 		local orb = self._shot_orb
 		local arrow = self._shot_arrow
 
-		local xOffset = ghostObject.x
-		local yOffset = ghostObject.y
+		local xOffset = ghost.x
+		local yOffset = ghost.y
 
 		-- Formula math.sqrt( ((event.y - yOffset) ^ 2) + ((event.x - xOffset) ^ 2) )
-		local distanceBetween = mCeil(mSqrt( ((event.y - yOffset) ^ 2) + ((event.x - xOffset) ^ 2) ))
+		local distanceBetween = mCeil(mSqrt( ((y - yOffset) ^ 2) + ((x - xOffset) ^ 2) ))
 
 		orb.xScale = -distanceBetween * 0.02
 		orb.yScale = -distanceBetween * 0.02
 
 		-- Formula: 90 + (math.atan2(y2 - y1, x2 - x1) * 180 / PI)
-		local angleBetween = mCeil(mAtan2( (event.y - yOffset), (event.x - xOffset) ) * 180 / mPi) + 90
+		local angleBetween = mCeil(mAtan2( (y - yOffset), (x - xOffset) ) * 180 / mPi) + 90
 
-		ghostObject.rotation = angleBetween + 180
-		arrow.rotation = ghostObject.rotation
+		ghost.rotation = angleBetween + 180
+		arrow.rotation = ghost.rotation
 	end
 
 	--== SWIPE START
 
 	if not self._is_panning and curr_state == GameView.STATE_NEW_ROUND then
-		print("here")
 		local dg = self._dg_game
 
 		if self._screen_position == GameView.LEFT_POS then
@@ -1333,7 +1289,6 @@ function GameView:enterFrame( event )
 			end
 
 		end
-
 	end
 
 	return true
@@ -1348,7 +1303,7 @@ end
 --== State Create ==--
 
 function GameView:state_create( next_state, params )
-	print( "GameView:state_create: >> ", next_state )
+	-- print( "GameView:state_create: >> ", next_state )
 	if next_state == GameView.STATE_INIT then
 		self:do_state_init( params )
 	else
@@ -1360,11 +1315,10 @@ end
 --== State Init ==--
 
 function GameView:do_state_init( params )
-	print( "GameView:do_state_init" )
+	-- print( "GameView:do_state_init" )
 	-- params = params or {}
 	--==--
 	self:setState( GameView.STATE_INIT )
-
 
 	self._game_is_active = true
 
@@ -1389,7 +1343,7 @@ function GameView:do_state_init( params )
 end
 
 function GameView:state_init( next_state, params )
-	print( "GameView:state_init: >> ", next_state )
+	-- print( "GameView:state_init: >> ", next_state )
 	if next_state == GameView.TO_NEW_ROUND then
 		self:do_trans_new_round( params )
 	else
@@ -1401,7 +1355,7 @@ end
 --== State To New Round ==--
 
 function GameView:do_trans_new_round( params )
-	print( "GameView:do_trans_new_round" )
+	-- print( "GameView:do_trans_new_round" )
 	-- params = params or {}
 	--==--
 	self:setState( GameView.TO_NEW_ROUND )
@@ -1430,7 +1384,7 @@ function GameView:do_trans_new_round( params )
 end
 
 function GameView:trans_new_round( next_state, params )
-	print( "GameView:trans_new_round: >> ", next_state )
+	-- print( "GameView:trans_new_round: >> ", next_state )
 	if next_state == GameView.STATE_NEW_ROUND then
 		self:do_state_new_round( params )
 	else
@@ -1442,7 +1396,7 @@ end
 --== State New Round ==--
 
 function GameView:do_state_new_round( params )
-	print( "GameView:do_state_new_round" )
+	-- print( "GameView:do_state_new_round" )
 	-- params = params or {}
 	--==--
 	self:setState( GameView.STATE_NEW_ROUND )
@@ -1452,7 +1406,7 @@ function GameView:do_state_new_round( params )
 end
 
 function GameView:state_new_round( next_state, params )
-	print( "GameView:state_new_round: >> ", next_state )
+	-- print( "GameView:state_new_round: >> ", next_state )
 	if next_state == GameView.TO_AIMING_SHOT then
 		self:do_trans_aiming_shot( params )
 	else
@@ -1581,13 +1535,10 @@ function GameView:do_trans_end_round( params )
 	self:setState( GameView.TO_END_ROUND )
 
 	-- remove the character, after delay
-	timer.performWithDelay( 1, function() self:_destroyGhost() end)
-	-- self:_destroyGhost()
-	-- self._character = nil
-
-	local cb = function() self:gotoState( GameView.STATE_END_ROUND ) end
+	timer.performWithDelay( 5, function() self:_destroyGhost() end)
 
 	-- move camera to see what we've done
+	local cb = function() self:gotoState( GameView.STATE_END_ROUND ) end
 	self:_panCamera( GameView.RIGHT_POS, 500, {callback=cb} )
 
 end
@@ -1629,18 +1580,17 @@ function GameView:do_trans_call_round( params )
 
 	self._text_is_blinking = false
 
-	print( self._enemy_count, self._game_lives)
 	if self._enemy_count == 0 then
 		-- WIN
-		timer.performWithDelay( 200, function() self:gotoState( GameView.STATE_END_GAME, {result=GameView.WIN_GAME} ) end, 1 )
+		timer.performWithDelay( 200, function() self:gotoState( GameView.STATE_END_GAME, {result=GameView.WIN_GAME} ) end )
 
 	elseif self._enemy_count > 0 and self._game_lives == 0 then
 		-- LOSE
-		timer.performWithDelay( 200, function() self:gotoState( GameView.STATE_END_GAME, {result=GameView.LOSE_GAME} ) end, 1 )
+		timer.performWithDelay( 200, function() self:gotoState( GameView.STATE_END_GAME, {result=GameView.LOSE_GAME} ) end )
 
 	else
 		-- NEXT ROUND
-		timer.performWithDelay( 200, function() self:gotoState( GameView.TO_NEW_ROUND ) end, 1 )
+		timer.performWithDelay( 200, function() self:gotoState( GameView.TO_NEW_ROUND ) end )
 	end
 
 end
