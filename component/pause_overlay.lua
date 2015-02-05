@@ -12,7 +12,7 @@ the anchor for this view is Top Center
 --]]
 
 --====================================================================--
---== Ghost vs Monsters : Pause Screen
+--== Ghost vs Monsters : Pause Overlay
 --====================================================================--
 
 
@@ -45,16 +45,16 @@ local LOCAL_DEBUG = false
 
 
 --====================================================================--
---== Pause Screen class
+--== Pause Overlay class
 --====================================================================--
 
 
-local PauseOverlay = newClass( ComponentBase, {name="Pause Screen"} )
+local PauseOverlay = newClass( ComponentBase, {name="Pause Overlay"} )
 
 
 --== Event Constants
 
-PauseOverlay.EVENT = 'pause-screen-event'
+PauseOverlay.EVENT = 'pause-overlay-event'
 
 PauseOverlay.ACTIVE = 'active-changed'
 PauseOverlay.MENU = 'menu-selected'
@@ -124,14 +124,12 @@ function PauseOverlay:__createView__()
 	self:insert( o )
 	self._primer = o
 
-
 	-- group for main/shade
 
 	dg = display.newGroup()
 
 	self:insert( dg )
 	self._group = dg
-
 
 	-- shade background
 
@@ -143,7 +141,6 @@ function PauseOverlay:__createView__()
 
 	dg:insert( o )
 	self._bg = o
-
 
 	-- main menu button
 
@@ -160,7 +157,6 @@ function PauseOverlay:__createView__()
 
 	dg:insert( o.view )
 	self._btn_menu = o
-
 
 	-- pause button
 

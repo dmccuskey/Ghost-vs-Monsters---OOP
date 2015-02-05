@@ -364,7 +364,7 @@ function GameView:__createView__()
 end
 
 function GameView:__undoCreateView__()
-	print( "GameView:__undoCreateView__" )
+	-- print( "GameView:__undoCreateView__" )
 
 	local o
 
@@ -424,7 +424,7 @@ end
 -- __initComplete__()
 --
 function GameView:__initComplete__()
-	print( "GameView:__initComplete__" )
+	-- print( "GameView:__initComplete__" )
 	self:superCall( '__initComplete__' )
 	--==--
 	local o, f
@@ -487,11 +487,11 @@ end
 
 
 function GameView:startGamePlay()
-	print( "GameView:startGamePlay" )
+	-- print( "GameView:startGamePlay" )
 	self:gotoState( GameView.STATE_INIT )
 end
 function GameView:pauseGamePlay()
-	print( "GameView:pauseGamePlay" )
+	-- print( "GameView:pauseGamePlay" )
 	self._game_is_active = false -- setter
 end
 
@@ -1403,7 +1403,7 @@ end
 --== State To Aiming Shot ==--
 
 function GameView:do_trans_aiming_shot( params )
-	print( "GameView:do_trans_aiming_shot" )
+	-- print( "GameView:do_trans_aiming_shot" )
 	-- params = params or {}
 	--==--
 	local orb = self._shot_orb
@@ -1424,7 +1424,7 @@ function GameView:do_trans_aiming_shot( params )
 end
 
 function GameView:trans_aiming_shot( next_state, params )
-	print( "GameView:trans_aiming_shot: >> ", next_state )
+	-- print( "GameView:trans_aiming_shot: >> ", next_state )
 	if next_state == GameView.AIMING_SHOT then
 		self:do_state_aiming_shot( params )
 	else
@@ -1436,13 +1436,13 @@ end
 --== State Aiming Shot ==--
 
 function GameView:do_state_aiming_shot( params )
-	print( "GameView:do_state_aiming_shot" )
+	-- print( "GameView:do_state_aiming_shot" )
 	-- params = params or {}
 	self:setState( GameView.AIMING_SHOT )
 	self:dispatchEvent( GameView.AIMING_SHOT )
 end
 function GameView:state_aiming_shot( next_state, params )
-	print( "GameView:state_aiming_shot: >> ", next_state )
+	-- print( "GameView:state_aiming_shot: >> ", next_state )
 	if next_state == GameView.TO_SHOT_IN_PLAY then
 		self:do_trans_shot_in_play( params )
 	else
@@ -1454,7 +1454,7 @@ end
 --== State To Shot In Play ==--
 
 function GameView:do_trans_shot_in_play( params )
-	print( "GameView:do_trans_shot_in_play" )
+	-- print( "GameView:do_trans_shot_in_play" )
 	params = params or {}
 	assert( params.shot )
 	--==--
@@ -1470,7 +1470,7 @@ function GameView:do_trans_shot_in_play( params )
 
 end
 function GameView:trans_shot_in_play( next_state, params )
-	print( "GameView:trans_shot_in_play: >> ", next_state )
+	-- print( "GameView:trans_shot_in_play: >> ", next_state )
 	if next_state == GameView.STATE_SHOT_IN_PLAY then
 		self:do_state_shot_in_play( params )
 	else
@@ -1482,7 +1482,7 @@ end
 --== State Shot In Play ==--
 
 function GameView:do_state_shot_in_play( params )
-	print( "GameView:do_state_shot_in_play" )
+	-- print( "GameView:do_state_shot_in_play" )
 	params = params or {}
 	assert( params.shot )
 	--==--
@@ -1503,7 +1503,7 @@ function GameView:do_state_shot_in_play( params )
 
 end
 function GameView:state_shot_in_play( next_state, params )
-	print( "GameView:state_shot_in_play: >> ", next_state )
+	-- print( "GameView:state_shot_in_play: >> ", next_state )
 	if next_state == GameView.TO_END_ROUND then
 		self:do_trans_end_round( params )
 	else
@@ -1515,7 +1515,7 @@ end
 --== State To End Round ==--
 
 function GameView:do_trans_end_round( params )
-	print( "GameView:do_trans_end_round" )
+	-- print( "GameView:do_trans_end_round" )
 	--==--
 	self:setState( GameView.TO_END_ROUND )
 
@@ -1528,7 +1528,7 @@ function GameView:do_trans_end_round( params )
 
 end
 function GameView:trans_end_round( next_state, params )
-	print( "GameView:trans_end_round: >> ", next_state )
+	-- print( "GameView:trans_end_round: >> ", next_state )
 	if next_state == GameView.STATE_END_ROUND then
 		self:do_state_end_round( params )
 	else
@@ -1540,14 +1540,14 @@ end
 --== State End Round ==--
 
 function GameView:do_state_end_round( params )
-	print( "GameView:do_state_end_round" )
+	-- print( "GameView:do_state_end_round" )
 	--==--
 	self:setState( GameView.STATE_END_ROUND )
 
 	self._text_is_blinking = true
 end
 function GameView:state_end_round( next_state, params )
-	print( "GameView:state_end_round: >> ", next_state )
+	-- print( "GameView:state_end_round: >> ", next_state )
 	if next_state == GameView.TO_CALL_ROUND then
 		self:do_trans_call_round( params )
 	else
@@ -1559,7 +1559,7 @@ end
 --== State To Call Round ==--
 
 function GameView:do_trans_call_round( params )
-	print( "GameView:do_trans_call_round" )
+	-- print( "GameView:do_trans_call_round" )
 	--==--
 	self:setState( GameView.TO_CALL_ROUND )
 
@@ -1580,7 +1580,7 @@ function GameView:do_trans_call_round( params )
 
 end
 function GameView:trans_call_round( next_state, params )
-	print( "GameView:trans_call_round: >> ", next_state )
+	-- print( "GameView:trans_call_round: >> ", next_state )
 	if next_state == GameView.TO_NEW_ROUND then
 		self:do_trans_new_round( params )
 	elseif next_state == GameView.STATE_END_GAME then
@@ -1594,7 +1594,7 @@ end
 --== State End Game ==--
 
 function GameView:do_state_end_game( params )
-	print( "GameView:do_state_end_game" )
+	-- print( "GameView:do_state_end_game" )
 	params = params or {}
 	assert( params.result )
 	--==--
@@ -1622,7 +1622,7 @@ function GameView:do_state_end_game( params )
 
 end
 function GameView:state_end_game( next_state, params )
-	print( "GameView:state_end_game: >> ", next_state )
+	-- print( "GameView:state_end_game: >> ", next_state )
 	if next_state == GameView.STATE_INIT then
 		self:do_state_init( params )
 	else

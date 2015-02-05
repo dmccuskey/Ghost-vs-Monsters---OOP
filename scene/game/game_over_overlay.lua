@@ -360,7 +360,7 @@ end
 
 
 function GameOver:show( params )
-	print( "GameOver:show", params )
+	-- print( "GameOver:show", params )
 	params = params or {}
 	self:superCall( 'show', params )
 	--==--
@@ -572,9 +572,8 @@ end
 
 
 function GameOver:_buttonEvent_handler( event )
-	print( "GameOver:_buttonEvent_handler" )
+	-- print( "GameOver:_buttonEvent_handler" )
 	local id = event.id
-	print( id )
 	self._sound_mgr:play( self._sound_mgr.TAP )
 
 	if id=='facebook-button' then

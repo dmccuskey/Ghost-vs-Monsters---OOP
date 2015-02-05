@@ -268,7 +268,7 @@ end
 -- event handler for the Menu View
 --
 function MenuScene:_menuViewEvent_handler( event )
-	print( "MenuScene:_menuViewEvent_handler: ", event.type )
+	-- print( "MenuScene:_menuViewEvent_handler: ", event.type )
 	local target = event.target
 
 	if event.type == target.SELECTED then
@@ -289,7 +289,7 @@ function MenuScene:_loadViewEvent_handler( event )
 	if event.type == target.COMPLETE then
 		self:gotoState( self.STATE_NORMAL )
 	else
-		print( "MenuScene:_loadViewEvent_handler unknown event", event.type )
+		-- print( "MenuScene:_loadViewEvent_handler unknown event", event.type )
 	end
 
 end
@@ -354,7 +354,7 @@ function MenuScene:do_state_normal( params )
 end
 
 function MenuScene:state_normal( next_state, params )
-	print( "MenuScene:state_normal: >> ", next_state )
+	-- print( "MenuScene:state_normal: >> ", next_state )
 	if next_state == MenuScene.STATE_NORMAL then
 		self:do_state_normal( params )
 	elseif next_state == MenuScene.STATE_COMPLETE then
@@ -368,7 +368,7 @@ end
 --== State Complete ==--
 
 function MenuScene:do_state_complete( params )
-	print( "MenuScene:do_state_complete" )
+	-- print( "MenuScene:do_state_complete" )
 	params = params or {}
 	--==--
 	self:setState( MenuScene.STATE_COMPLETE )

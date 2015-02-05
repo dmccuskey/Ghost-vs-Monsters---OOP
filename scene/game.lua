@@ -103,7 +103,7 @@ end
 
 
 function GameScene:__createView__()
-	print( "GameScene:__createView__" )
+	-- print( "GameScene:__createView__" )
 
 	-- local W, H = self._width , self._height
 	-- local H_CENTER, V_CENTER = W*0.5, H*0.5
@@ -139,7 +139,7 @@ function GameScene:__undoCreateView__()
 end
 
 function GameScene:__initComplete__()
-	print( "GameScene:__initComplete__" )
+	-- print( "GameScene:__initComplete__" )
 	self:_createGameView()
 	self:gotoState( self.STATE_LOADING )
 end
@@ -316,7 +316,7 @@ end
 -- event handler for the Game View
 --
 function GameScene:gameViewEvent_handler( event )
-	print( "GameScene:gameViewEvent_handler: ", event.type )
+	-- print( "GameScene:gameViewEvent_handler: ", event.type )
 	local target = event.target
 
 	if event.type == target.GAME_ISACTIVE then
@@ -402,7 +402,7 @@ end
 --== State Play ==--
 
 function GameScene:do_state_play( params )
-	print( "GameScene:do_state_play" )
+	-- print( "GameScene:do_state_play" )
 	params = params or {}
 	--==--
 	self:setState( GameScene.STATE_PLAY )
@@ -411,7 +411,7 @@ function GameScene:do_state_play( params )
 end
 
 function GameScene:state_play( next_state, params )
-	print( "GameScene:state_play: >> ", next_state )
+	-- print( "GameScene:state_play: >> ", next_state )
 	if next_state == GameScene.STATE_PLAY then
 		self:do_state_play( params )
 	elseif next_state == GameScene.STATE_COMPLETE then
@@ -425,7 +425,7 @@ end
 --== State Complete ==--
 
 function GameScene:do_state_complete( params )
-	print( "GameScene:do_state_complete" )
+	-- print( "GameScene:do_state_complete" )
 	params = params or {}
 	--==--
 	self:setState( GameScene.STATE_COMPLETE )
@@ -470,7 +470,7 @@ scene.GAME_COMPLETE = 'game-complete'
 -- START: composer scene setup
 
 function scene:create( event )
-	print( "Game Scene:create" )
+	-- print( "Game Scene:create" )
 	GameScene.view = self.view
 	GameScene:__init__( event.params )
 	GameScene:__createView__()
@@ -479,7 +479,7 @@ end
 
 function scene:show( event )
 	print( "Game Scene:show" )
-	-- Utils.print( event )
+	Utils.print( event )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 		-- e.width, e.height, e.level_data

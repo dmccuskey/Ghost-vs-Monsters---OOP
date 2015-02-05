@@ -147,7 +147,7 @@ function AppController:__init__( params )
 	self._current_scene = nil
 	self._current_scene_f = nil
 
-	self._open_feint_p = params.open_feint
+	self._open_feint = params.open_feint
 
 	--== Services ==--
 
@@ -173,10 +173,6 @@ end
 function AppController:__createView__()
 	self:superCall( '__createView__' )
 	--==--
-
-	-- local W, H = self._width, self._height
-	-- local H_CENTER, V_CENTER = W*0.5, H*0.5
-
 	-- setting the Composer layer to ours
 	self:insert( composer.stage )
 
@@ -185,11 +181,11 @@ end
 --
 -- one of the base methods to override for dmc_objects
 --
-function AppController:__undoCreateView__()
-	local o
-	--==--
-	self:superCall( '__undoCreateView__' )
-end
+-- function AppController:__undoCreateView__()
+-- 	local o
+-- 	--==--
+-- 	self:superCall( '__undoCreateView__' )
+-- end
 
 
 -- __initComplete__()
@@ -424,13 +420,13 @@ function AppController:do_state_initialize( params )
 
 	-- Init Open Feint
 
-	if self._open_feint_p then
-		self:_loadOpenFeint( self._open_feint_p )
+	if self._open_feint then
+		self:_loadOpenFeint( self._open_feint )
 	end
 
 	--== End Initialization ==--
 
-	-- set state, goto next
+	-- set state, then goto next
 	self:setState( AppController.STATE_INIT )
 
 	if self._run_mode == AppController.TEST_MODE then
