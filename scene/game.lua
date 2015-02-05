@@ -279,7 +279,7 @@ function GameScene:_createGameView()
 	dg:insert( o.view )
 	self._view_game = o
 
-	f = Utils.createObjectCallback( self, self.gameViewEvent_handler )
+	f = Utils.createObjectCallback( self, self._gameViewEvent_handler )
 	o:addEventListener( o.EVENT, f )
 
 	self._view_game_f = f
@@ -321,8 +321,8 @@ end
 
 -- event handler for the Game View
 --
-function GameScene:gameViewEvent_handler( event )
-	-- print( "GameScene:gameViewEvent_handler: ", event.type )
+function GameScene:_gameViewEvent_handler( event )
+	-- print( "GameScene:_gameViewEvent_handler: ", event.type )
 	local target = event.target
 
 	if event.type == target.GAME_ACTIVE_EVENT then
