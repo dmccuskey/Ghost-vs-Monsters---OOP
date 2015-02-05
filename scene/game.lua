@@ -210,8 +210,6 @@ function GameScene:_destroyLoadOverlay()
 end
 
 
-
-
 function GameScene:_createGameOverOverlay()
 	-- print( "GameScene:_createGameOverOverlay" )
 	if self._view_gameover then self:_destroyLoadOverlay() end
@@ -256,8 +254,6 @@ function GameScene:_destroyGameOverOverlay()
 end
 
 
-
-
 function GameScene:_createGameView()
 	-- print( "GameScene:_createGameView" )
 	if self._view_game then self:_destroyGameView() end
@@ -298,11 +294,6 @@ end
 
 
 
-
-
-
-
-
 --====================================================================--
 --== Event Handlers
 
@@ -320,7 +311,6 @@ function GameScene:_loadViewEvent_handler( event )
 	end
 
 end
-
 
 
 -- event handler for the Game View
@@ -345,6 +335,7 @@ function GameScene:gameViewEvent_handler( event )
 
 end
 
+
 -- event handler for the Game Over Overlay
 --
 function GameScene:_gameOverEvent_handler( event )
@@ -361,7 +352,6 @@ function GameScene:_gameOverEvent_handler( event )
 	end
 
 end
-
 
 
 

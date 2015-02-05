@@ -1,5 +1,5 @@
 --====================================================================--
--- level_overlay.lua
+-- scene/menu/level_overlay.lua
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
@@ -12,7 +12,7 @@ the anchor for this view is Top Center
 --]]
 
 --====================================================================--
---== Ghost vs Monsters : Level Screen
+--== Ghost vs Monsters : Level Overlay
 --====================================================================--
 
 
@@ -48,15 +48,15 @@ local LOCAL_DEBUG = false
 
 
 --====================================================================--
---== Level Screen Class
+--== Level Overlay Class
 --====================================================================--
 
 
-local LevelOverlay = newClass( ComponentBase, {name="Level Screen"} )
+local LevelOverlay = newClass( ComponentBase, {name="Level Overlay"} )
 
 --== Event Constants
 
-LevelOverlay.EVENT = 'level-screen-event'
+LevelOverlay.EVENT = 'level-overlay-event'
 
 LevelOverlay.SELECTED = 'level-selected'
 LevelOverlay.CANCELED = 'selection-canceled'

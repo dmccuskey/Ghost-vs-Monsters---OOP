@@ -50,6 +50,8 @@ local LOCAL_DEBUG = true
 
 local SoundMgr = newClass( ObjectBase, {name="Sound Manager"} )
 
+--== Class Constants
+
 SoundMgr.BLAST_OFF='blast-off-sound'
 SoundMgr.GHOST_POOF='ghost-poof-sound'
 SoundMgr.IMPACT='impact-sound'

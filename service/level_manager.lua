@@ -166,7 +166,6 @@ function LevelMgr:_updateLevelData( data )
 end
 
 
-
 -- _getLevelByIndex()
 --
 -- get level by index

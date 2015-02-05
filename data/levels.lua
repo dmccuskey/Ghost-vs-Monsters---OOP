@@ -1,5 +1,5 @@
 --====================================================================--
--- level_data.lua
+-- data/levels.lua
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
