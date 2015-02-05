@@ -9,7 +9,6 @@
 
 --[[
 exports the following globals:
-
 * gService
 --]]
 
@@ -50,8 +49,6 @@ local OpenFeint = nil
 
 local LoadOverlay = require 'component.load_overlay'
 
--- local HUDFactory = require 'component.hud_components'
-
 
 
 --====================================================================--
@@ -86,6 +83,7 @@ local oldTimerCancel = nil -- patched timer
 local LOCAL_DEBUG = true
 
 
+
 --====================================================================--
 --== Support Functions
 
@@ -103,6 +101,7 @@ end
 --====================================================================--
 --== App Controller Class
 --====================================================================--
+
 
 local AppController = newClass( { ComponentBase, StatesMix }, {name="App Controller"} )
 
@@ -218,7 +217,6 @@ function AppController:__undoInitComplete__()
 	--==--
 	self:superCall( '__undoCreateView__' )
 end
-
 
 -- END: Setup DMC Objects
 --======================================================--
