@@ -477,6 +477,7 @@ function MenuView:_levelOverlayEvent_handler( event )
 
 	if event.type == target.CANCELED then
 		self:_destroyLevelOverlay()
+
 	elseif event.type == target.SELECTED then
 		self:_destroyLevelOverlay()
 		local data = event.data
@@ -484,8 +485,9 @@ function MenuView:_levelOverlayEvent_handler( event )
 		-- print( "level info:", data.name, data.level )
 		local p = {level=level}
 		self:dispatchEvent( self.SELECTED, p, {merge=false} )
+
 	else
-		print( "unknown event", event.type )
+		print( "[WARNING] MenuView:_levelOverlayEvent_handler", event.type )
 	end
 end
 
