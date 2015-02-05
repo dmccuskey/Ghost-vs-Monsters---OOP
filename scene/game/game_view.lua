@@ -32,7 +32,6 @@ local Utils = require 'lib.dmc_corona.dmc_utils'
 --== Components
 
 local ObjectFactory = require 'component.object_factory'
-
 local PauseOverlay = require 'component.pause_overlay'
 
 
@@ -45,23 +44,24 @@ local newClass = Objects.newClass
 local ComponentBase = Objects.ComponentBase
 local StatesMix = StatesMixModule.StatesMix
 
-local LOCAL_DEBUG = false
+local LOCAL_DEBUG = true
 
 
 
 --====================================================================--
 --== Support Functions
 
+
 local function DisplayReferenceFactory( name )
 
-	if name == "TopLeft" then
-		return display.TopLeftReferencePoint
-	elseif name == "CenterLeft" then
-		return display.CenterLeftReferencePoint
-	elseif name == "BottomLeft" then
-		return display.BottomLeftReferencePoint
+	if name == 'TopLeft' then
+		return ComponentBase.TopLeftReferencePoint
+	elseif name == 'CenterLeft' then
+		return ComponentBase.CenterLeftReferencePoint
+	elseif name == 'BottomLeft' then
+		return ComponentBase.BottomLeftReferencePoint
 	else
-		return display.TopLeftReferencePoint
+		return ComponentBase.TopLeftReferencePoint
 	end
 
 end
@@ -192,9 +192,7 @@ function GameView:__init__( params )
 
 	--== Sanity Check
 
-	assert( params.sound_mgr, "Game View requires param 'sound_mgr'")
 	assert( params.width and params.height, "Game View requires params 'width' & 'height'")
-
 	assert( params.level_data==nil or type(params.level_data)=='table', "Game View wrong type for 'level_data'")
 
 	--== Properties
@@ -205,7 +203,7 @@ function GameView:__init__( params )
 	self._level_data = params.level_data
 	self.__game_is_active = false	-- our saved value
 
-	self._screenPosition = ""	-- "left" or "right"
+	self._screen_position = ""	-- "left" or "right"
 
 	-- if we are panning the scene
 	self._is_panning = false
@@ -215,9 +213,9 @@ function GameView:__init__( params )
 	self._enemy_count = 0
 
 	self.__best_score = -1
-	self.__game_score = 0	-- our saved value
+	self.__game_score = -1
 
-	self._sound_mgr = params.sound_mgr
+	self._sound_mgr = gService.sound_mgr
 
 	--== Display Groups
 
@@ -290,13 +288,14 @@ function GameView:__createView__()
 	--==--
 	local W, H = self._width , self._height
 	local H_CENTER, V_CENTER = W*0.5, H*0.5
+	local H_MARGIN, V_MARGIN = 15, 10
 
 	local dg, o, tmp
 
 	-- setup display primer
 
 	o = display.newRect( 0, 0, W, 10)
-	o.anchorX, o.anchorY = 0.5, 0
+	o.anchorX, o.anchorY = 0, 0
 	o:setFillColor(0,0,0,0)
 	if LOCAL_DEBUG then
 		o:setFillColor(1,0,0,0.75)
@@ -327,17 +326,10 @@ function GameView:__createView__()
 	dg:insert( o )
 	self._dg_bg = o
 
-	-- TODO:
-	-- self:_createBackgroundItems()
-
 	-- physics background items
 	o = display.newGroup()
 	dg:insert( o )
 	self._dg_ph_bg = o
-
-
-	-- TODO:
-	-- self:_createPhysicsBackgroundItems()
 
 	-- shot feedback items
 
@@ -380,8 +372,6 @@ function GameView:__createView__()
 	o = display.newText( "0", 470, 22, "Helvetica-Bold", 52 )
 	o:setTextColor( 1,1,1,1 )	--> white
 	o.xScale, o.yScale = 0.5, 0.5  --> for clear retina display text
-	--txt.x = ( 480 - ( txt.contentWidth * 0.5 ) ) - 15
-	o.y = 20
 
 	dg:insert( o )
 	self._txt_score = o
@@ -389,10 +379,10 @@ function GameView:__createView__()
 	-- "tap to continue" display
 
 	o = display.newText( "TAP TO CONTINUE", 240, 18, "Helvetica", 36 )
-	o:setTextColor( 249, 203, 64, 255 )
+	o.anchorX, o.anchorY = 0.5, 0
+	o:setTextColor( 249/255, 203/255, 64/255 )
 	o.xScale, o.yScale = 0.5, 0.5
-	o.x = 240; o.y = 18
-	--txt.isVisible = false
+	o.x, o.y = H_CENTER, V_MARGIN
 
 	dg:insert( o )
 	self._txt_continue = o
@@ -428,11 +418,11 @@ function GameView:__undoCreateView__()
 	gameGroup:remove( layer.trailGroup )
 
 	-- physics forground items
-	self:_removeDataItems( layer.physicsBackgroundGroup, { isPhysics=true } )
+	self:_removeDataItems( layer.physicsBackgroundGroup, { is_physics=true } )
 	gameGroup:remove( layer.physicsBackgroundGroup )
 
 	-- physics game group
-	self:_removeDataItems( layer.physicsGameGroup, { isPhysics=true } )
+	self:_removeDataItems( layer.physicsGameGroup, { is_physics=true } )
 	gameGroup:remove( layer.physicsGameGroup )
 
 	-- shot feedback items
@@ -443,7 +433,7 @@ function GameView:__undoCreateView__()
 	gameGroup:remove( layer.shot )
 
 	-- physics background items
-	self:_removeDataItems( layer.physicsBackgroundGroup, { isPhysics=true } )
+	self:_removeDataItems( layer.physicsBackgroundGroup, { is_physics=true } )
 	gameGroup:remove( layer.physicsBackgroundGroup )
 
 	-- background items
@@ -552,13 +542,18 @@ function GameView.__setters:_game_score( value )
 	--==--
 	if self.__game_score == value then return end
 
+	local W, H = self._width , self._height
+	local H_CENTER, V_CENTER = W*0.5, H*0.5
+	local H_MARGIN, V_MARGIN = 15, 10
+
 	if value < 0 then value = 0 end
 	self.__game_score = value
 
 	-- update scoreboard
 	local o = self._txt_score
 	o.text = comma_value( value )
-	o.x = ( 480 - ( o.contentWidth * 0.5 ) ) - 15
+	o.anchorX, o.anchorY = 1, 0
+	o.x, o.y = W-H_MARGIN, V_MARGIN
 end
 
 
@@ -643,48 +638,50 @@ end
 -- loop through game data items and put on stage
 --
 function GameView:_addDataItems( data, group, params )
-	--print( "GameView:_addDataItems" )
+	print( "GameView:_addDataItems" )
+	params = params or {}
+	if params.is_physics==nil then params.is_physics=false end
+	--==--
 
-	local params = params or {}
-	local isPhysics = params.isPhysics or false
-
+	local is_physics = params.is_physics
 	local o, d
 
 	for _, item in ipairs( data ) do
+		print( _, item.name, item )
 		-- item is one of the entries in our data file
 
 		-- most of the creation magic happens in this line
 		-- game objects are created from level data entries
-		o = ObjectFactory.create( item.name, self )
+		o = ObjectFactory.create( item.name, {game_engine=self} )
+		assert( o, "object not created" )
 
-		-- sanity check - if we have something, then process it
-		if o then
-			-- process attributes found in the level data
-			if item.reference then
-				o:setReferencePoint( DisplayReferenceFactory( item.reference ) )
-			end
-			-- TODO: process special properties and layer the rest
-			if item.rotation then o.rotation = item.rotation end
-			if item.alpha then o.alpha = item.alpha end
-			if item.x then o.x = item.x end
-			if item.y then o.y = item.y end
+		-- process attributes found in the level data
+		if item.reference then
+			o.anchorX, o.anchorY = unpack( DisplayReferenceFactory( item.reference )  )
+		end
+		-- TODO: process special properties and layer the rest
+		if item.rotation then o.rotation = item.rotation end
+		if item.alpha then o.alpha = item.alpha end
+		if item.x then o.x = item.x end
+		if item.y then o.y = item.y end
 
-			-- add new object to the display group and physics engine
-			d = o
-			if o.isa ~= nil and o:isa( CoronaBase ) then
-				-- type is of dmc_object
-				d = o.display
-			end
-			if isPhysics then
-				physics.addBody( d, o.physicsType, o.physicsProperties )
-			end
-			group:insert( d )
+		-- add new object to the display group and physics engine
+		d = o
+		if o.view then
+			-- type is of dmc_object
+			d = o.view
+		elseif o.display then
+			d = o.display
+		end
+		if is_physics then
+			physics.addBody( d, o.physicsType, o.physicsProperties )
+		end
+		group:insert( d )
 
-			-- count enemies being place on screen
-			if o.myName == self._level_data.info.enemyName then
-				self._enemy_count = self._enemy_count + 1
-				o:addEventListener( o.UPDATE_EVENT, self )
-			end
+		-- count enemies being place on screen
+		if o.myName == self._level_data.info.enemyName then
+			self._enemy_count = self._enemy_count + 1
+			o:addEventListener( o.UPDATE_EVENT, self )
 		end
 	end
 
@@ -695,18 +692,23 @@ end
 -- loop through display groups and remove their items
 --
 function GameView:_removeDataItems( group, params )
-	--print( "GameView:_removeDataItems" )
+	print( "GameView:_removeDataItems" )
 	local params = params or {}
-	local isPhysics = params.isPhysics or false
+	if params.is_physics==nil then params.is_physics=false end
+	--==--
+
+	local is_physics = params.is_physics
 	local o, d
 
 	for i = group.numChildren, 1, -1 do
 		o = group[ i ]
 		-- TODO: make this a little cleaner. need API for it
-		if o.__dmcRef then
-			o = o.__dmcRef
-		end
-		if isPhysics then
+
+		o = getDMCObject( o )
+		-- if o.__dmcRef then
+		-- 	o = o.__dmcRef
+		-- end
+		if is_physics then
 			d = o
 			if o.isa ~= nil and o:isa( CoronaBase ) then
 				d = o.display
@@ -720,7 +722,7 @@ function GameView:_removeDataItems( group, params )
 		else
 			o:removeEventListener( o.UPDATE_EVENT, self )
 			-- let the character know that GE is done, can remove itself
-			self:dispatchEvent( GameView.CHARACTER_REMOVED, {item=o} )
+			-- self:dispatchEvent( GameView.CHARACTER_REMOVED, {item=o} )
 		end
 	end
 
@@ -731,33 +733,74 @@ end
 -- _createBackground()
 --
 function GameView:_createBackgroundItems()
-	if self._level_data.backgroundItems then
-		self:_addDataItems( self._level_data.backgroundItems, self.layer.backgroundGroup )
+	local data = self._level_data.backgroundItems
+	if data then
+		self:_addDataItems( data, self._dg_bg )
 	end
+end
+function GameView:_destroyBackgroundItems()
+	self:_removeDataItems( self._dg_bg )
 end
 
 -- _createPhysicsBackgroundItems()
 --
 function GameView:_createPhysicsBackgroundItems()
-	if self._level_data.physicsBackgroundItems then
-		self:_addDataItems( self._level_data.physicsBackgroundItems, self.layer.physicsBackgroundGroup, { isPhysics=true } )
+	local data = self._level_data.physicsBackgroundItems
+	if data then
+		self:_addDataItems( data, self._dg_ph_bg, {is_physics=true} )
 	end
+end
+function GameView:_destroyPhysicsBackgroundItems()
+	self:_removeDataItems( self._dg_bg, {is_physics=true} )
 end
 
 -- _createPhysicsGameItems()
 --
 function GameView:_createPhysicsGameItems()
-	if self._level_data.physicsGameItems then
-		self:_addDataItems( self._level_data.physicsGameItems, self.layer.physicsGameGroup, { isPhysics=true } )
+	local data = self._level_data.physicsGameItems
+	if data then
+		self:_addDataItems( data, self._dg_ph_game, {is_physics=true} )
 	end
 end
+function GameView:_destroyPhysicsGameItems()
+	self:_removeDataItems( self._dg_ph_game, {is_physics=true} )
+end
+
+
 -- _createPhysicsForegroundItems()
 --
 function GameView:_createPhysicsForegroundItems()
 	if self._level_data.physicsForgroundItems then
-		self:_addDataItems( self._level_data.physicsForgroundItems, self.layer.physicsForegroundGroup, { isPhysics=true } )
+		self:_addDataItems( self._level_data.physicsForgroundItems, self.layer.physicsForegroundGroup, { is_physics=true } )
 	end
 end
+
+
+-- _createLevelObjects()
+--
+function GameView:_createLevelObjects()
+
+	-- cleanup
+	self:_destroyLevelObjects()
+
+	self:_createBackgroundItems()
+	self:_createPhysicsBackgroundItems()
+	-- self:_createPhysicsGameItems()
+	-- self:_createPhysicsForegroundItems()
+
+end
+
+-- _destroyLevelObjects()
+--
+function GameView:_destroyLevelObjects()
+	-- self:_destroyPhysicsForegroundItems()
+	-- self:_destroyPhysicsGameItems()
+	self:_destroyPhysicsBackgroundItems()
+	self:_destroyBackgroundItems()
+end
+
+
+
 
 
 -- _createShotFeedback()
@@ -814,7 +857,7 @@ function GameView:_panCamera( direction, duration, params )
 	f = function()
 		local cb = params.callback
 		self._is_panning = false
-		self._screenPosition = direction
+		self._screen_position = direction
 		if cb then cb() end
 	end
 	p = {
@@ -991,7 +1034,7 @@ function GameView:state_create( next_state, params )
 	if next_state == GameView.STATE_INIT then
 		self:do_state_init( params )
 	else
-		print( "WARNING::state_create : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::state_create : " .. tostring( next_state ) )
 	end
 end
 
@@ -1004,16 +1047,17 @@ function GameView:do_state_init( params )
 	--==--
 	self:setState( GameView.STATE_INIT )
 
+	self:_createLevelObjects()
+
 	self._game_is_active = true
 
-	self._dg_game.x = -480
-	self._screenPosition = GameView.RIGHT_POS
 	self._game_lives = 4 -- DEBUG
-
 	self._game_score = 0
 
-	-- self.hudRefs[ "pause-hud" ].isVisible = false
+	self._dg_game.x = -480
+	self._screen_position = GameView.RIGHT_POS
 
+	self._pause_overlay.isVisible = false
 	self._text_is_blinking = false
 
 	self:gotoState( GameView.TO_NEW_ROUND )
@@ -1024,7 +1068,7 @@ function GameView:state_init( next_state, params )
 	if next_state == GameView.TO_NEW_ROUND then
 		self:do_trans_new_round( params )
 	else
-		print( "WARNING::state_create : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::state_create : " .. tostring( next_state ) )
 	end
 end
 
@@ -1046,7 +1090,7 @@ function GameView:do_trans_new_round( params )
 
 	step2 = function( e )
 
-		self._screenPosition = GameView.LEFT_POS
+		self._screen_position = GameView.LEFT_POS
 
 		-- create new ghost
 		local o = self:_createGhost()
@@ -1063,7 +1107,7 @@ function GameView:trans_new_round( next_state, params )
 	if next_state == GameView.STATE_NEW_ROUND then
 		self:do_state_new_round( params )
 	else
-		print( "WARNING::trans_new_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::trans_new_round : " .. tostring( next_state ) )
 	end
 end
 
@@ -1085,7 +1129,7 @@ function GameView:state_new_round( next_state, params )
 	if next_state == GameView.TO_AIMING_SHOT then
 		self:do_trans_aiming_shot( params )
 	else
-		print( "WARNING::state_new_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::state_new_round : " .. tostring( next_state ) )
 	end
 end
 
@@ -1118,7 +1162,7 @@ function GameView:trans_aiming_shot( next_state, params )
 	if next_state == GameView.AIMING_SHOT then
 		self:do_state_aiming_shot( params )
 	else
-		print( "WARNING::trans_aiming_shot : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::trans_aiming_shot : " .. tostring( next_state ) )
 	end
 end
 
@@ -1136,7 +1180,7 @@ function GameView:state_aiming_shot( next_state, params )
 	if next_state == GameView.TO_SHOT_IN_PLAY then
 		self:do_trans_shot_in_play( params )
 	else
-		print( "WARNING::state_aiming_shot : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::state_aiming_shot : " .. tostring( next_state ) )
 	end
 end
 
@@ -1164,7 +1208,7 @@ function GameView:trans_shot_in_play( next_state, params )
 	if next_state == GameView.STATE_SHOT_IN_PLAY then
 		self:do_state_shot_in_play( params )
 	else
-		print( "WARNING::trans_shot_in_play : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::trans_shot_in_play : " .. tostring( next_state ) )
 	end
 end
 
@@ -1197,7 +1241,7 @@ function GameView:state_shot_in_play( next_state, params )
 	if next_state == GameView.TO_END_ROUND then
 		self:do_trans_end_round( params )
 	else
-		print( "WARNING::state_shot_in_play : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::state_shot_in_play : " .. tostring( next_state ) )
 	end
 end
 
@@ -1225,7 +1269,7 @@ function GameView:trans_end_round( next_state, params )
 	if next_state == GameView.STATE_END_ROUND then
 		self:do_state_end_round( params )
 	else
-		print( "WARNING::trans_end_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::trans_end_round : " .. tostring( next_state ) )
 	end
 end
 
@@ -1244,7 +1288,7 @@ function GameView:state_end_round( next_state, params )
 	if next_state == GameView.TO_CALL_ROUND then
 		self:do_trans_call_round( params )
 	else
-		print( "WARNING::state_end_round : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::state_end_round : " .. tostring( next_state ) )
 	end
 end
 
@@ -1278,7 +1322,7 @@ function GameView:trans_call_round( next_state, params )
 	if next_state == GameView.STATE_END_GAME then
 		self:do_state_end_game( params )
 	else
-		print( "WARNING::trans_call_round : " .. tostring( next_state ) )
+		print("[WARNING] GameView::trans_call_round : " .. tostring( next_state ) )
 	end
 end
 
@@ -1302,6 +1346,9 @@ function GameView:do_state_end_game( params )
 	self._txt_continue.isVisible = false
 	self._txt_score.isVisible = false
 
+	-- stop game action, dispatches event
+	self._game_is_active = false
+
 	local data = {
 		outcome = params.result,
 		score = self._game_score,
@@ -1309,15 +1356,13 @@ function GameView:do_state_end_game( params )
 	}
 	self:dispatchEvent( GameView.GAME_OVER_EVENT, data )
 
-	-- stop game action
-	self._game_is_active = false
-
 end
 function GameView:state_end_game( next_state, params )
 	print( "GameView:state_end_game: >> ", next_state )
-	if false then
+	if next_state == GameView.STATE_INIT then
+		self:do_state_init( params )
 	else
-		print( "WARNING::state_end_game : " .. tostring( next_state ) )
+		print( "[WARNING] GameView::state_end_game : " .. tostring( next_state ) )
 	end
 end
 
@@ -1516,7 +1561,7 @@ function GameView:touch( event )
 	--== TOUCH HANDLING, active game
 	if self._game_is_active then
 		-- BEGINNING OF AIM
-		if phase == 'began' and curr_state == GameView.STATE_NEW_ROUND and xStart > 115 and xStart < 180 and yStart > 160 and yStart < 230 and self._screenPosition == GameView.LEFT_POS then
+		if phase == 'began' and curr_state == GameView.STATE_NEW_ROUND and xStart > 115 and xStart < 180 and yStart > 160 and yStart < 230 and self._screen_position == GameView.LEFT_POS then
 
 			self:gotoState( GameView.TO_AIMING_SHOT )
 
@@ -1544,19 +1589,19 @@ function GameView:touch( event )
 			end
 
 			-- update screen
-			if newPosition == GameView.RIGHT_POS and self._screenPosition == "left" then
+			if newPosition == GameView.RIGHT_POS and self._screen_position == "left" then
 				diff = event.xStart - event.x
 				if diff >= 100 then
 					self:_panCamera( newPosition, 700 )
 				else
-					self:_panCamera( self._screenPosition, 100 )
+					self:_panCamera( self._screen_position, 100 )
 				end
 			else
 				diff = event.x - event.xStart
 				if diff >= 100 then
 					self:_panCamera( newPosition, 700 )
 				else
-					self:_panCamera( self._screenPosition, 100 )
+					self:_panCamera( self._screen_position, 100 )
 				end
 			end
 
@@ -1597,14 +1642,14 @@ function GameView:touch( event )
 		print("here")
 		local dg = self._dg_game
 
-		if self._screenPosition == GameView.LEFT_POS then
+		if self._screen_position == GameView.LEFT_POS then
 			-- Swipe left to go right
 			if xStart > 180 then
 				dg.x = x - xStart
 				if dg.x > 0 then dg.x = 0 end
 			end
 
-		elseif self._screenPosition == GameView.RIGHT_POS then
+		elseif self._screen_position == GameView.RIGHT_POS then
 			-- Swipe right to go to the left
 			dg.x = (x - xStart) - 480
 			if dg.x < -480 then dg.x = -480 end

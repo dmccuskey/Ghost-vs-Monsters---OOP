@@ -39,7 +39,7 @@ local newClass = Objects.newClass
 local PhysicsComponentBase = Objects.PhysicsComponentBase
 local StatesMix = StatesMixModule.StatesMix
 
-local LOCAL_DEBUG = true
+local LOCAL_DEBUG = false
 
 
 
@@ -100,14 +100,14 @@ function Ghost:__init__( params )
 
 	self.rotation = 0
 
-	self._enterframe_f = nil
-
 	--== Objects
 
 	self._sound_mgr = gService.sound_mgr
 
 	self._game_engine = params.game_engine
 	self._game_engine_f = nil
+
+	self._enterframe_f = nil
 
 	--== Physics Properties
 
@@ -151,7 +151,7 @@ function Ghost:__createView__()
 
 	-- blast glow
 
-	o = display.newImageRect( "assets/effects/blastglow.png", 54, 54 )
+	o = display.newImageRect( 'assets/effects/blastglow.png', 54, 54 )
 	o.x, o.y = -7, 8
 	o.isVisible = false
 	self:insert( o )
@@ -159,7 +159,7 @@ function Ghost:__createView__()
 
 	-- ghost poof
 
-	o = display.newImageRect( "assets/effects/poof.png", 80, 70 )
+	o = display.newImageRect( 'assets/effects/poof.png', 80, 70 )
 	o.alpha = 1.0
 	o.isVisible = false
 	self:insert( o )
@@ -234,6 +234,8 @@ end
 --== Public Methods
 
 
+-- getter/setter: is_offscreen
+--
 function Ghost.__getters:is_offscreen()
 	return self._is_offscreen
 end
@@ -246,7 +248,6 @@ function Ghost.__setters:is_offscreen( value )
 	self._is_offscreen = value
 	self:gotoState( Ghost.STATE_DYING )
 end
-
 
 
 -- applyForce( xForce, yForce, bodyX, bodyY )
@@ -262,6 +263,8 @@ end
 --== Private Methods
 
 
+-- getter/setter: _is_animating
+--
 function Ghost.__getters:_is_animating()
 	return self.__is_animating
 end
@@ -281,6 +284,8 @@ function Ghost.__setters:_is_animating( value )
 end
 
 
+-- getter/setter: _is_hit
+--
 function Ghost.__getters:_is_hit()
 	return self.__is_hit
 end
@@ -290,8 +295,6 @@ function Ghost.__setters:_is_hit( value )
 	--==--
 	self.__is_hit = value
 end
-
-
 
 
 function Ghost:_changeImage( value )
@@ -320,7 +323,6 @@ function Ghost:_stopGhostAnimation()
 	transition.cancel( self._ghost_tween )
 	self._ghost_tween = nil
 end
-
 function Ghost:_doGhostAnimation( event )
 	-- print( "Ghost:_doGhostAnimation" )
 	local lY = ( self.y == 190 ) and 200 or 190
@@ -368,10 +370,8 @@ end
 
 
 function Ghost:_gameEngineEvent_handler( event )
-	print( "Ghost:_gameEngineEvent_handler ", event.type )
+	-- print( "Ghost:_gameEngineEvent_handler ", event.type )
 	local target = event.target
-	local item = event.item
-	Utils.print( event )
 
 	if event.type == target.AIMING_SHOT then
 		self:gotoState( Ghost.STATE_AIMING )
@@ -379,9 +379,6 @@ function Ghost:_gameEngineEvent_handler( event )
 	elseif event.type == target.GAME_ISACTIVE then
 		self._is_animating = event.value
 		self._is_active = value
-
-	elseif event.type == target.CHARACTER_REMOVED and item == self then
-		-- self:removeSelf()
 
 	end
 
