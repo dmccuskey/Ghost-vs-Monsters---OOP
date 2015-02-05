@@ -31,12 +31,6 @@ local Objects = require 'lib.dmc_corona.dmc_objects'
 local Utils = require 'lib.dmc_corona.dmc_utils'
 local Widgets = require 'lib.dmc_widgets'
 
---== Services
-
-local LevelMgr = require 'service.level_manager'
-local SoundMgr = require 'service.sound_manager'
-
-
 
 
 --====================================================================--
@@ -82,8 +76,6 @@ function LevelOverlay:__init__( params )
 
 	--== Sanity Check
 
-	assert( params.sound_mgr and params.sound_mgr:isa(SoundMgr), "Level Overlay requires param 'sound_mgr'")
-	assert( params.level_mgr and params.level_mgr:isa(LevelMgr), "Level Overlay requires param 'level_mgr'")
 	assert( params.width and params.height, "Level Overlay requires params 'width' & 'height'")
 
 
@@ -97,8 +89,8 @@ function LevelOverlay:__init__( params )
 
 	--== Objects
 
-	self._level_mgr = params.level_mgr
-	self._sound_mgr = params.sound_mgr
+	self._level_mgr = gService.level_mgr
+	self._sound_mgr = gService.sound_mgr
 
 	--== Display Objects
 

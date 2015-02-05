@@ -131,8 +131,6 @@ local function test_levelOverlay()
 
 	local o = LevelOverlay:new{
 		width=W, height=H,
-		level_mgr=ACI.level_mgr,
-		sound_mgr=ACI.sound_mgr
 	}
 
 	o.x, o.y = 240, 0
@@ -238,7 +236,6 @@ test_gameMainView = function( create_only )
 
 	local o = GameView:new{
 		width=W, height=H,
-		sound_mgr=ACI.sound_mgr,
 		level_data=LEVEL_MGR:getLevelData(1)
 	}
 
@@ -276,9 +273,7 @@ local function test_menuMainView()
 	assert( type(MenuView)=='table', "ERROR: loading Menu View" )
 
 	local o = MenuView:new{
-		width=W, height=H,
-		level_mgr=ACI.level_mgr,
-		sound_mgr=ACI.sound_mgr
+		width=W, height=H
 	}
 	o.x, o.y = H_CENTER, 0
 

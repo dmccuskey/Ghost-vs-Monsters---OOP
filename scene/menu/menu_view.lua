@@ -90,8 +90,6 @@ function MenuView:__init__( params )
 
 	--== Sanity Check
 
-	assert( params.level_mgr and params.level_mgr:isa(LevelMgr), "Menu View requires param 'level_mgr'")
-	assert( params.sound_mgr and params.sound_mgr:isa(SoundMgr), "Menu View requires param 'sound_mgr'")
 	assert( params.width and params.height, "Menu View requires params 'width' & 'height'")
 
 	--== Properties
@@ -105,8 +103,8 @@ function MenuView:__init__( params )
 
 	--== Objects
 
-	self._sound_mgr = params.sound_mgr
-	self._level_mgr = params.level_mgr
+	self._level_mgr = gService.level_mgr
+	self._sound_mgr = gService.sound_mgr
 
 	self._dg_main = nil
 	self._dg_overlay = nil
