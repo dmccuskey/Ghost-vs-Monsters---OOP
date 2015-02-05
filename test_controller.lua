@@ -153,6 +153,47 @@ end
 
 
 --======================================================--
+-- Test: Game Over Overlay
+
+local function test_gameOverOverlay()
+	print( "test_gameOverOverlay" )
+
+	local GameOverOverlay = require 'scene.game.game_over_overlay'
+	assert( type(GameOverOverlay)=='table' )
+
+	local o = GameOverOverlay:new{
+		width=W, height=H,
+	}
+	o.x, o.y = H_CENTER, 0
+
+	o:show({outcome='win',score=122233244,bestscore=204342223})
+	-- o:show({outcome='lose',score=100,bestscore=204343})
+
+	local f = function( event )
+		print( "GameOverOverlay Event" )
+
+		if event.type == o.FACEBOOK then
+			print( "facebook selected" )
+		elseif event.type == o.MENU then
+			print( "menu selected" )
+		elseif event.type == o.NEXT then
+			local result = event.data
+			print( "next level selected", result.name, result.level )
+		elseif event.type == o.OPEN_FEINT then
+			print( "open feint selected" )
+		elseif event.type == o.RESTART then
+			print( "restart selected" )
+		else
+			print( "unknown event", e.type )
+		end
+	end
+	o:addEventListener( o.EVENT, f )
+
+	destroyObjIn( o )
+end
+
+
+--======================================================--
 -- Test: Level Screen
 
 local function test_levelOverlay()
@@ -164,8 +205,7 @@ local function test_levelOverlay()
 	local o = LevelOverlay:new{
 		width=W, height=H,
 	}
-
-	o.x, o.y = 240, 0
+	o.x, o.y = H_CENTER, 0
 
 	local f = function( e )
 		print( "LevelOverlay Event" )
@@ -198,7 +238,6 @@ local function test_loadOverlay()
 	local o = LoadOverlay:new{
 		width=W, height=H
 	}
-
 	o.x, o.y = H_CENTER, 0
 
 	local f = function( e )
@@ -273,6 +312,7 @@ test_gameMainView = function( create_only )
 
 	if create_only then return o end
 
+	-- note this one is aligned on left
 	o.x, o.y = 0, 0
 
 	local f = function( event )
@@ -291,7 +331,7 @@ test_gameMainView = function( create_only )
 
 	o:startGamePlay()
 
-	destroyObjIn( o, 5000 )
+	destroyObjIn( o )
 end
 
 
@@ -350,11 +390,12 @@ function TestController.runTests()
 
 	--== Component Tests
 
+	test_gameOverOverlay()
 	-- test_levelOverlay()
 	-- test_loadOverlay()
 	-- test_pauseOverlay()
 
-	test_gameMainView()
+	-- test_gameMainView()
 	-- test_menuMainView()
 
 
