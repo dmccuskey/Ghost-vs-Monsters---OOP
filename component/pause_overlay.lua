@@ -33,7 +33,6 @@ local Widgets = require 'lib.dmc_widgets'
 
 
 
-
 --====================================================================--
 --== Setup, Constants
 
@@ -109,8 +108,8 @@ function PauseOverlay:__createView__()
 	-- print( "PauseOverlay:__createView__" )
 	self:superCall( '__createView__' )
 	--==--
+	local BASE_YPOS = 290
 	local o, dg
-
 
 	-- Setup display primer
 
@@ -138,8 +137,8 @@ function PauseOverlay:__createView__()
 
 	o = display.newRect( 0, 0, 480, 320 )
 	o.anchorX, o.anchorY = 0.5, 0
-	o:setFillColor( 0,0,0, 0 )
-	o.alpha = 0.5
+	o:setFillColor( 0,0,0 )
+	o.alpha = 0.6
 	o.x, o.y = 0, 0
 
 	dg:insert( o )
@@ -157,7 +156,7 @@ function PauseOverlay:__createView__()
 			file='assets/buttons/pausemenubtn-over.png'
 		}
 	}
-	o.x, o.y = -200, 280
+	o.x, o.y = -200, BASE_YPOS
 
 	dg:insert( o.view )
 	self._btn_menu = o
@@ -174,7 +173,7 @@ function PauseOverlay:__createView__()
 			file='assets/buttons/pausebtn-over.png'
 		}
 	}
-	o.x, o.y = 200, 280
+	o.x, o.y = 200, BASE_YPOS
 
 	self:insert( o.view )
 	self._btn_pause = o
