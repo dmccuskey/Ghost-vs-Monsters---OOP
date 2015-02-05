@@ -25,6 +25,7 @@ local VERSION = "0.2.0"
 
 local physics = require 'physics'
 
+local AppUtils = require 'lib.app_utils'
 local Objects = require 'lib.dmc_corona.dmc_objects'
 local StatesMixModule = require 'lib.dmc_corona.dmc_states_mix'
 local Utils = require 'lib.dmc_corona.dmc_utils'
