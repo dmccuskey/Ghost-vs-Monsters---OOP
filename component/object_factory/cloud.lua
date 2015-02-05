@@ -60,7 +60,7 @@ Cloud.FILE = nil
 -- one of the base methods to override for dmc_objects
 --
 function Cloud:__init__( params )
-	print( "Cloud:__init__", params )
+	-- print( "Cloud:__init__", params )
 	params = params or {}
 	self:superCall( '__init__', params )
 	--==--
@@ -144,7 +144,7 @@ end
 -- __undoInitComplete__()
 --
 function Cloud:__undoInitComplete__()
-	print( "Cloud:__undoInitComplete__" )
+	-- print( "Cloud:__undoInitComplete__" )
 
 	local o, f
 
@@ -237,7 +237,7 @@ CloudFactory.RIGHT = 'right-cloud'
 
 
 function CloudFactory.create( obj_type, params )
-	print( "CloudFactory.create", obj_type, params )
+	-- print( "CloudFactory.create", obj_type, params )
 
 	if obj_type==CloudFactory.LEFT then
 		return LeftCloud:new( params )

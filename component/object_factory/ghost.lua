@@ -525,7 +525,7 @@ function Ghost:do_state_hit( params )
 	-- visual - prepare poof
 	local pList = { 'wood', 'stone', 'tomb', 'monster' }
 	local delay = 1700
-	if Utils.propertyIn( pList, params.event.other.myName ) then
+	if Utils.propertyIn( pList, params.event.other.TYPE ) then
 		delay = 500
 	end
 	timer.performWithDelay( delay, function() self:gotoState( Ghost.STATE_DYING ) end, 1 )
@@ -606,6 +606,8 @@ function Ghost:state_dead( next_state, params )
 	print( "WARNING::state_dead : " .. tostring( next_state ) )
 end
 
+--== END: State Machine
+--======================================================--
 
 
 

@@ -8,6 +8,7 @@
 --====================================================================--
 
 
+
 --====================================================================--
 --== Monster vs Monsters : Monster Character
 --====================================================================--
@@ -24,9 +25,6 @@ local VERSION = "0.1.0"
 
 
 local Objects = require 'lib.dmc_corona.dmc_objects'
-local Utils = require 'lib.dmc_corona.dmc_utils'
-
-local MovieClip = require 'lib.movieclip'
 
 
 
@@ -37,7 +35,7 @@ local MovieClip = require 'lib.movieclip'
 local newClass = Objects.newClass
 local PhysicsComponentBase = Objects.PhysicsComponentBase
 
-local LOCAL_DEBUG = true
+local LOCAL_DEBUG = false
 
 
 
@@ -69,12 +67,8 @@ Monster.STATE_DEAD = 'character-dead'
 function Monster:__init__( params )
 	-- print( "Monster:__init__", params )
 	params = params or {}
-	self:superCall( PhysicsComponentBase, '__init__', params )
+	self:superCall( '__init__', params )
 	--==--
-
-	--== Sanity Check
-
-	assert( params.game_engine, "Monster requires params 'game_engine'")
 
 	--== Properties
 
@@ -83,9 +77,6 @@ function Monster:__init__( params )
 	--== Objects
 
 	self._sound_mgr = gService.sound_mgr
-
-	self._game_engine = params.game_engine
-	self._game_engine_f = nil
 
 	--== Physics Properties
 
@@ -102,10 +93,11 @@ end
 
 -- __undoInit__()
 --
--- function Monster:__undoInit__()
--- 	--==--
--- 	self:superCall( '__undoInit__' )
--- end
+function Monster:__undoInit__()
+	self._sound_mgr = nil
+	--==--
+	self:superCall( '__undoInit__' )
+end
 
 
 -- __createView__()
@@ -155,27 +147,15 @@ end
 function Monster:__initComplete__()
 	self:superCall( '__initComplete__' )
 	--==--
-	local o, f
 
 	self:addEventListener( 'postCollision', self )
 
-	o = self._game_engine
-	f = self:createCallback( self._gameEngineEvent_handler )
-	o:addEventListener( o.EVENT, f )
-	self._game_engine_f = f
 end
 
 -- __undoInitComplete__()
 --
 function Monster:__undoInitComplete__()
 	-- print( "Monster:__undoInitComplete__" )
-
-	local o, f
-
-	o = self._game_engine
-	f = self._game_engine_f
-	o:removeEventListener( o.EVENT, f )
-	self._game_engine_f = nil
 
 	self:removeEventListener( 'postCollision', self )
 
@@ -229,32 +209,21 @@ end
 
 
 function Monster:postCollision( event )
-	-- print( "Monster:postCollision" )
+	-- print( "Monster:postCollision", event.force )
 
 	if event.force > 1.5 and self._is_hit==false then
-		print( "Monster destroyed! Force: ", event.force )
+		if LOCAL_DEBUG then
+			print( "Monster destroyed! Force: ", event.force )
+		end
 
 		self._is_hit = true
 		self._sound_mgr:play( self._sound_mgr.POOF )
-		timer.performWithDelay( 10, function() self:_showPoof( event.force ) end )
+		timer.performWithDelay( 5, function() self:_showPoof( event.force ) end )
 
 		return true
 	end
 end
 
-
-function Monster:_gameEngineEvent_handler( event )
-	-- print( "Monster:_gameEngineEvent_handler ", event.type )
-	local target = event.target
-	local item = event.item
-	Utils.print( event )
-
-	if event.type == target.CHARACTER_REMOVED and item==self then
-		-- self:removeSelf()
-
-	end
-
-end
 
 
 
