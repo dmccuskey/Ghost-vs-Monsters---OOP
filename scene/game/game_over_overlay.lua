@@ -362,6 +362,7 @@ end
 function GameOver:show( params )
 	print( "GameOver:show", params )
 	params = params or {}
+	self:superCall( 'show', params )
 	--==--
 	assert( type(params.outcome)=='string' )
 	assert( type(params.score)=='number' )
@@ -377,6 +378,9 @@ function GameOver:show( params )
 
 end
 
+-- function GameOver:hide()
+-- 	print( "GameOver:hide" )
+-- end
 
 
 --====================================================================--

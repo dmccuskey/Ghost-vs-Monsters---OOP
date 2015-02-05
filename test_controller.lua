@@ -47,7 +47,10 @@ local test_gameMainView
 
 local function destroyObjIn( obj, time )
 	if time == nil then time = DESTROY_DELAY_TIME end
-	timer.performWithDelay( time, function() obj:removeSelf() end )
+	timer.performWithDelay( time, function()
+		print( "Test: destroying object" )
+		obj:removeSelf()
+	end )
 end
 
 
@@ -166,9 +169,6 @@ local function test_gameOverOverlay()
 	}
 	o.x, o.y = H_CENTER, 0
 
-	o:show({outcome='win',score=122233244,bestscore=204342223})
-	-- o:show({outcome='lose',score=100,bestscore=204343})
-
 	local f = function( event )
 		print( "GameOverOverlay Event" )
 
@@ -188,6 +188,26 @@ local function test_gameOverOverlay()
 		end
 	end
 	o:addEventListener( o.EVENT, f )
+
+	timer.performWithDelay( 1, function()
+		o:hide()
+	end )
+
+	timer.performWithDelay( 1000, function()
+		o:show({outcome='win',score=122233244,bestscore=204342223})
+	end )
+
+	timer.performWithDelay( 3000, function()
+		o:hide()
+	end )
+
+	timer.performWithDelay( 5000, function()
+		o:show({outcome='lose',score=100,bestscore=204343})
+	end )
+
+	timer.performWithDelay( 8000, function()
+		o:hide()
+	end )
 
 	destroyObjIn( o )
 end
