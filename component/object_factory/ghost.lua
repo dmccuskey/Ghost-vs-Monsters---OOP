@@ -170,7 +170,7 @@ end
 -- __undoCreateView__()
 --
 function Ghost:__undoCreateView__()
-	print( "Ghost:__undoCreateView__" )
+	-- print( "Ghost:__undoCreateView__" )
 	local o
 
 	o = self._poof
@@ -210,7 +210,7 @@ end
 -- __undoInitComplete__()
 --
 function Ghost:__undoInitComplete__()
-	print( "Ghost:__undoInitComplete__" )
+	-- print( "Ghost:__undoInitComplete__" )
 
 	local o, f
 
@@ -240,7 +240,7 @@ function Ghost.__getters:is_offscreen()
 	return self._is_offscreen
 end
 function Ghost.__setters:is_offscreen( value )
-	print( "Ghost.__setters:is_offscreen" )
+	-- print( "Ghost.__setters:is_offscreen" )
 	assert( type(value)=='boolean' )
 	--==--
 	if self._is_offscreen==value then return end
@@ -343,7 +343,7 @@ end
 
 
 function Ghost:collision( event )
-	print( "Ghost:collision" )
+	-- print( "Ghost:collision" )
 	if event.phase == 'began' then
 		self._sound_mgr:play( self._sound_mgr.IMPACT )
 		if not self._is_hit then
@@ -395,7 +395,7 @@ function Ghost:state_conceived( next_state, params )
 	if next_state == Ghost.STATE_BORN then
 		self:do_state_born( params )
 	else
-		print( "WARNING::state_conceived : " .. tostring( next_state ) )
+		print( "[WARNING] Ghost:state_conceived :: " .. tostring( next_state ) )
 	end
 end
 
@@ -425,7 +425,7 @@ function Ghost:state_born( next_state, params )
 	if next_state == Ghost.STATE_LIVING then
 		self:do_state_living( params )
 	else
-		print( "WARNING::state_born : " .. tostring( next_state ) )
+		print( "[WARNING] Ghost:state_born :: " .. tostring( next_state ) )
 	end
 end
 
@@ -433,7 +433,7 @@ end
 --== State Living ==--
 
 function Ghost:do_state_living( params )
-	print( "Ghost:do_state_living", params )
+	-- print( "Ghost:do_state_living", params )
 
 	self:setState( Ghost.STATE_LIVING )
 	self._is_animating = true
@@ -441,12 +441,12 @@ function Ghost:do_state_living( params )
 end
 
 function Ghost:state_living( next_state, params )
-	print( "Ghost:state_living: >> ", next_state, params )
+	-- print( "Ghost:state_living: >> ", next_state, params )
 
 	if next_state == Ghost.STATE_AIMING then
 		self:do_state_aiming( params )
 	else
-		print( "WARNING::state_living : " .. tostring( next_state ) )
+		print( "[WARNING] Ghost:state_living :: " .. tostring( next_state ) )
 	end
 end
 
@@ -454,7 +454,7 @@ end
 --== State Aiming ==--
 
 function Ghost:do_state_aiming( params )
-	print( "Ghost:do_state_aiming", params )
+	-- print( "Ghost:do_state_aiming", params )
 
 	self:setState( Ghost.STATE_AIMING )
 	self._is_animating = false
@@ -463,12 +463,12 @@ function Ghost:do_state_aiming( params )
 end
 
 function Ghost:state_aiming( next_state, params )
-	print( "Ghost:state_aiming: >> ", next_state, params )
+	-- print( "Ghost:state_aiming: >> ", next_state, params )
 
 	if next_state == Ghost.STATE_FLYING then
 		self:do_state_flying( params )
 	else
-		print( "WARNING::state_aiming : " .. tostring( next_state ) )
+		print( "[WARNING] Ghost:state_aiming :: " .. tostring( next_state ) )
 	end
 end
 
@@ -476,7 +476,7 @@ end
 --== State Flying ==--
 
 function Ghost:do_state_flying( params )
-	print( "Ghost:do_state_flying", params )
+	-- print( "Ghost:do_state_flying", params )
 	self:setState( Ghost.STATE_FLYING )
 
 	self:_startEnterFrame()
@@ -495,14 +495,14 @@ function Ghost:do_state_flying( params )
 end
 
 function Ghost:state_flying( next_state, params )
-	print( "Ghost:state_flying: >> ", next_state, params )
+	-- print( "Ghost:state_flying: >> ", next_state, params )
 
 	if next_state == Ghost.STATE_HIT then
 		self:do_state_hit( params )
 	elseif next_state == Ghost.STATE_DYING then
 		self:do_state_dying( params )
 	else
-		print( "WARNING::state_flying : " .. tostring( next_state ) )
+		print( "[WARNING] Ghost:state_flying :: " .. tostring( next_state ) )
 	end
 end
 
@@ -510,10 +510,13 @@ end
 --== State Hit ==--
 
 function Ghost:do_state_hit( params )
-	print( "Ghost:do_state_hit", params )
+	-- print( "Ghost:do_state_hit", params )
 	params = params or {}
 	assert( params.event )
 	--==--
+	local hit_with = params.event.other
+	local delay = 1700
+
 	self:setState( Ghost.STATE_HIT )
 
 	self:_startEnterFrame()
@@ -524,8 +527,7 @@ function Ghost:do_state_hit( params )
 
 	-- visual - prepare poof
 	local pList = { 'wood', 'stone', 'tomb', 'monster' }
-	local delay = 1700
-	if Utils.propertyIn( pList, params.event.other.TYPE ) then
+	if Utils.propertyIn( pList, hit_with.TYPE ) then
 		delay = 500
 	end
 	timer.performWithDelay( delay, function() self:gotoState( Ghost.STATE_DYING ) end, 1 )
@@ -534,12 +536,12 @@ function Ghost:do_state_hit( params )
 end
 
 function Ghost:state_hit( next_state, params )
-	print( "Ghost:state_hit: >> ", next_state, params )
+	-- print( "Ghost:state_hit: >> ", next_state, params )
 
 	if next_state == Ghost.STATE_DYING then
 		self:do_state_dying( params )
 	else
-		print( "WARNING::state_hit : " .. tostring( next_state ) )
+		print( "[WARNING] Ghost:state_hit :: " .. tostring( next_state ) )
 	end
 end
 
@@ -547,7 +549,7 @@ end
 --== State Dying ==--
 
 function Ghost:do_state_dying( params )
-	print( "Ghost:do_state_dying", params )
+	-- print( "Ghost:do_state_dying", params )
 
 	local o
 
@@ -577,18 +579,18 @@ function Ghost:do_state_dying( params )
 	end
 	transition.to( o, { time=100, alpha=1.0, onComplete=fadePoof } )
 
-	self._sound_mgr:play( self._sound_mgr.POOF )
+	self._sound_mgr:play( self._sound_mgr.GHOST_POOF )
 
 	self:dispatchEvent( Ghost.STATE_DYING )
 end
 
 function Ghost:state_dying( next_state, params )
-	print( "Ghost:state_dying: >> ", next_state, params )
+	-- print( "Ghost:state_dying: >> ", next_state, params )
 
 	if next_state == Ghost.STATE_DEAD then
 		self:do_state_dead( params )
 	else
-		print( "WARNING::state_dying : " .. tostring( next_state ) )
+		print( "[WARNING] Ghost:state_dying :: " .. tostring( next_state ) )
 	end
 end
 
@@ -596,14 +598,14 @@ end
 --== State Dead ==--
 
 function Ghost:do_state_dead( params )
-	print( "Ghost:do_state_dead", params )
+	-- print( "Ghost:do_state_dead", params )
 	self:setState( Ghost.STATE_DEAD )
 	self:dispatchEvent( Ghost.STATE_DEAD )
 end
 
 function Ghost:state_dead( next_state, params )
-	print( "Ghost:state_dead: >> ", next_state, params )
-	print( "WARNING::state_dead : " .. tostring( next_state ) )
+	-- print( "Ghost:state_dead: >> ", next_state, params )
+	print( "[WARNING] Ghost:state_dead :: " .. tostring( next_state ) )
 end
 
 --== END: State Machine

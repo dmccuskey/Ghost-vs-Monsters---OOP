@@ -35,6 +35,7 @@ local Objects = require 'lib.dmc_corona.dmc_objects'
 local newClass = Objects.newClass
 local ObjectBase = Objects.ObjectBase
 
+local sformat = string.format
 local tinsert = table.insert
 local tremove = table.remove
 
@@ -50,19 +51,27 @@ local LOCAL_DEBUG = true
 local SoundMgr = newClass( ObjectBase, {name="Sound Manager"} )
 
 SoundMgr.BLAST_OFF='blast-off-sound'
+SoundMgr.GHOST_POOF='ghost-poof-sound'
 SoundMgr.IMPACT='impact-sound'
+SoundMgr.MONSTER_POOF='monster-poof-sound'
 SoundMgr.NEW_ROUND='new-round-sound'
-SoundMgr.POOF='poof-sound'
+SoundMgr.RAIN='rain-sound'
 SoundMgr.TAP='tap-sound'
 SoundMgr.WEE='wee-sound'
+SoundMgr.YOU_WIN='you-win-sound'
+SoundMgr.YOU_LOSE='you-lose-sound'
 
 SoundMgr._SOUNDS = {
 	{ SoundMgr.BLAST_OFF, 'assets/sounds/blastoff.wav' },
-	{ SoundMgr.IMPACT, 'assets/sounds/blastoff.wav' },
+	{ SoundMgr.GHOST_POOF, 'assets/sounds/ghostpoof.wav' },
+	{ SoundMgr.IMPACT, 'assets/sounds/impact.wav' },
+	{ SoundMgr.MONSTER_POOF, 'assets/sounds/monsterpoof.wav' },
 	{ SoundMgr.NEW_ROUND, 'assets/sounds/newround.wav' },
-	{ SoundMgr.POOF, 'assets/sounds/ghostpoof.wav' },
+	{ SoundMgr.RAIN, 'assets/sounds/rainsound.mp3' },
 	{ SoundMgr.TAP, 'assets/sounds/tapsound.wav' },
-	{ SoundMgr.WEE, 'assets/sounds/wee.wav' }
+	{ SoundMgr.WEE, 'assets/sounds/wee.wav' },
+	{ SoundMgr.YOU_LOSE, 'assets/sounds/youlose.wav' },
+	{ SoundMgr.YOU_WIN, 'assets/sounds/youwin.wav' },
 }
 
 
@@ -122,7 +131,7 @@ function SoundMgr:play( name )
 	assert( type(name)=='string', "SoundMgr.play(): incorrect type for name" )
 	--==--
 	local sounds = self._sounds
-	assert( sounds[name], string.format( "SoundMgr.play(): unknown sound '%s'", tostring(name) ))
+	assert( sounds[name], sformat( "SoundMgr.play(): unknown sound '%s'", tostring(name) ))
 	audio.play( sounds[name] )
 end
 
@@ -141,7 +150,7 @@ function SoundMgr:_insertSound( name, file )
 	-- print( "SoundMgr:_insertSound", name, file )
 	local sounds = self._sounds
 	local snd = audio.loadSound( file )
-	assert( snd, string.format( "SoundMgr._insertSound(): error loading sound file '%s'", tostring(file) ))
+	assert( snd, sformat( "SoundMgr._insertSound(): error loading sound file '%s'", tostring(file) ))
 	sounds[ name ] = snd
 end
 

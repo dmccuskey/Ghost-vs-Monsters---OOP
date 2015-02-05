@@ -217,7 +217,7 @@ function Monster:postCollision( event )
 		end
 
 		self._is_hit = true
-		self._sound_mgr:play( self._sound_mgr.POOF )
+		self._sound_mgr:play( self._sound_mgr.MONSTER_POOF )
 		timer.performWithDelay( 5, function() self:_showPoof( event.force ) end )
 
 		return true
