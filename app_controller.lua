@@ -72,19 +72,6 @@ local StatesMix = StatesMixModule.StatesMix
 
 local AppSingleton = nil -- singleton, created in static run()
 
-local appGroup -- groups for all items
-
--- this is used to pass information around to each Director scene
--- ie, no globals
-local app_token = {
-	token_id = 4,
-	mainGroup = nil,
-	hudGroup = nil,
-	loadScreenHUD = nil,
-	gameEngine = nil, -- ref to Game Engine, if it is running
-	--openfeint = openfeint,
-}
-
 local oldTimerCancel = nil -- patched timer
 
 local LOCAL_DEBUG = true
