@@ -373,6 +373,38 @@ function AppController:state_menu( next_state, params )
 end
 
 
+--== State Game ==--
+
+function AppController:do_state_game( params )
+	print( "AppController:do_state_game", params )
+	params = params or {}
+	--==--
+	self:setState( AppController.STATE_GAME )
+
+	local scene_options = {
+		params = {
+			width=self._width, height=self._height,
+			-- top_margin = gAppConstants.STATUS_BAR_HEIGHT,
+			sound_mgr = self.sound_mgr,
+			level_data=params.level
+		}
+	}
+	self:_gotoScene( 'scene.game', scene_options )
+
+end
+
+function AppController:state_game( next_state, params )
+	print( "AppController:state_game: >> ", next_state, params )
+
+	if next_state == AppController.STATE_MENU then
+		self:do_state_menu( params )
+	else
+		print( "WARNING::state_game : " .. tostring( next_state ) )
+	end
+end
+
+
+
 
 --====================================================================--
 --== Private Methods
@@ -458,9 +490,8 @@ function AppController:_currentScene_handler( event )
 
 	--== Events from Game Scene
 
-	elseif event.type == cs.SHOW_TALENT_BUILDER then
-
-		self:_toggleTalentBuilder( 'show' )
+	elseif event.type == cs.GAME_COMPLETE then
+		self:gotoState( AppController.STATE_MENU )
 
 	else
 		print( "WARNING AppController:_currentScene_handler : " .. tostring( event.type ) )
