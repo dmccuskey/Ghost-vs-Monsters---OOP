@@ -50,15 +50,15 @@ local LOCAL_DEBUG = false
 --====================================================================--
 
 
-local PauseScreen = newClass( ComponentBase, {name="Pause Screen"} )
+local PauseOverlay = newClass( ComponentBase, {name="Pause Screen"} )
 
 
 --== Event Constants
 
-PauseScreen.EVENT = 'pause-screen-event'
+PauseOverlay.EVENT = 'pause-screen-event'
 
-PauseScreen.ACTIVE = 'active-changed'
-PauseScreen.MENU = 'menu-selected'
+PauseOverlay.ACTIVE = 'active-changed'
+PauseOverlay.MENU = 'menu-selected'
 
 
 --======================================================--
@@ -68,14 +68,18 @@ PauseScreen.MENU = 'menu-selected'
 --
 -- one of the base methods to override for dmc_objects
 --
-function PauseScreen:__init__( params )
-	-- print( "PauseScreen:__init__" )
+function PauseOverlay:__init__( params )
+	-- print( "PauseOverlay:__init__" )
 	self:superCall( '__init__', params )
 	--==--
 
 	--== Properties
 
 	self._is_paused = false
+
+	--== Objects
+
+	self._sound_mgr = gService.sound_mgr
 
 	--== Display Objects
 
@@ -91,7 +95,7 @@ function PauseScreen:__init__( params )
 end
 -- __undoInit__()
 --
--- function PauseScreen:__undoInit__()
+-- function PauseOverlay:__undoInit__()
 -- 	--==--
 -- 	self:superCall( '__undoInit__' )
 -- end
@@ -101,8 +105,8 @@ end
 --
 -- one of the base methods to override for dmc_objects
 --
-function PauseScreen:__createView__()
-	-- print( "PauseScreen:__createView__" )
+function PauseOverlay:__createView__()
+	-- print( "PauseOverlay:__createView__" )
 	self:superCall( '__createView__' )
 	--==--
 	local o, dg
@@ -178,8 +182,8 @@ function PauseScreen:__createView__()
 end
 -- __undoCreateView__()
 --
-function PauseScreen:__undoCreateView__()
-	--print( "PauseScreen:__undoCreateView__" )
+function PauseOverlay:__undoCreateView__()
+	--print( "PauseOverlay:__undoCreateView__" )
 	local o
 
 	o = self._btn_pause
@@ -209,7 +213,7 @@ end
 
 -- __initComplete__()
 --
-function PauseScreen:__initComplete__()
+function PauseOverlay:__initComplete__()
 	self:superCall( '__initComplete__' )
 	--==--
 	local o
@@ -226,7 +230,7 @@ function PauseScreen:__initComplete__()
 end
 -- __undoInitComplete__()
 --
-function PauseScreen:__undoInitComplete__()
+function PauseOverlay:__undoInitComplete__()
 	self:hide()
 	--==--
 	self:superCall( '__undoCreateView__' )
@@ -243,10 +247,10 @@ end
 
 -- is_active
 --
-function PauseScreen.__getters:is_active()
+function PauseOverlay.__getters:is_active()
 	return self._is_paused
 end
-function PauseScreen.__setters:is_active( value )
+function PauseOverlay.__setters:is_active( value )
 	assert( type(value)=='boolean', "incorrect type for is_active" )
 	--==--
 	self._is_paused = value
@@ -254,8 +258,8 @@ function PauseScreen.__setters:is_active( value )
 end
 
 
-function PauseScreen:menuConfirmation( event )
-	-- print( "PauseScreen:menuConfirmation", event.action )
+function PauseOverlay:menuConfirmation( event )
+	-- print( "PauseOverlay:menuConfirmation", event.action )
 	if 'clicked' == event.action then
 		local i = event.index
 		if i == 1 then
@@ -279,22 +283,22 @@ end
 --== Event Handlers
 
 
-function PauseScreen:pauseButtonEvent_handler( event )
-	-- print( "PauseScreen:pauseButtonEvent_handler" )
+function PauseOverlay:pauseButtonEvent_handler( event )
+	-- print( "PauseOverlay:pauseButtonEvent_handler" )
 	local btn = event.target
 
-	-- audio.play( tapSound )
+	self._sound_mgr:play( self._sound_mgr.TAP )
 
 	self.is_active = btn.is_active
 	self:dispatchEvent( self.ACTIVE, {is_active=btn.is_active} )
 end
 
 
-function PauseScreen:menuButtonEvent_handler( event )
-	-- print( "PauseScreen:menuButtonEvent_handler" )
+function PauseOverlay:menuButtonEvent_handler( event )
+	-- print( "PauseOverlay:menuButtonEvent_handler" )
 	local btn = event.target
 
-	audio.play( tapSound )
+	self._sound_mgr:play( self._sound_mgr.TAP )
 
 	native.showAlert(
 		"Are You Sure?",
@@ -307,4 +311,4 @@ end
 
 
 
-return PauseScreen
+return PauseOverlay
