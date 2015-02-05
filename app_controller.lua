@@ -153,8 +153,8 @@ function AppController:__init__( params )
 
 	--== Display Groups ==--
 
-	-- for section views, Storyboard group is here
-	self._dg_main = nil
+	-- -- for section views, Storyboard group is here
+	-- self._dg_main = nil
 
 	--== Display Objects ==--
 
@@ -171,20 +171,11 @@ function AppController:__createView__()
 	self:superCall( '__createView__' )
 	--==--
 
-	local W, H = self._width, self._height
-	local H_CENTER, V_CENTER = W*0.5, H*0.5
+	-- local W, H = self._width, self._height
+	-- local H_CENTER, V_CENTER = W*0.5, H*0.5
 
-	local o, tmp
-
-	-- create main group, holds Composer layer, controls and main block
-	o = display.newGroup()
-	o.x, o.y = 0,0
-
-	self:insert( o )
-	self._dg_main = o
-
-	-- setting the Composer layer to another one
-	self._dg_main:insert( composer.stage )
+	-- setting the Composer layer to ours
+	self:insert( composer.stage )
 
 end
 -- __undoCreateView__()
@@ -193,11 +184,6 @@ end
 --
 function AppController:__undoCreateView__()
 	local o
-
-	o = self._dg_main
-	o:removeSelf()
-	self._dg_main = nil
-
 	--==--
 	self:superCall( '__undoCreateView__' )
 end
@@ -211,6 +197,7 @@ function AppController:__initComplete__()
 
 	patchTimer()
 
+	-- create our event callback refs
 	self._system_f = self:createCallback( self._systemEvent_handler )
 	self._current_scene_f = self:createCallback( self._currentScene_handler )
 
@@ -221,6 +208,9 @@ end
 -- __undoInitComplete__()
 --
 function AppController:__undoInitComplete__()
+
+	self._system_f = nil
+	self._current_scene_f = nil
 	--==--
 	self:superCall( '__undoCreateView__' )
 end
@@ -307,7 +297,7 @@ function AppController:do_state_initialize( params )
 	--== Start Initialization ==--
 
 	-- watch for system events
-	-- Runtime:addEventListener( 'system', self._system_f )
+	Runtime:addEventListener( 'system', self._system_f )
 
 	-- set status bar
 
@@ -487,68 +477,6 @@ openfeint.init( "App Key Here", "App Secret Here", "Ghosts vs. Monsters", "App I
 
 
 
-
--- initialize()
---
-local function initialize()
-
-	-- Create display groups
-	appGroup = display.newGroup()
-	app_token.mainGroup = display.newGroup()
-	app_token.hudGroup = display.newGroup()
-
-	appGroup:insert( app_token.mainGroup )
-	appGroup:insert( app_token.hudGroup )
-
-	-- loading screen
-	local loadScreenHUD = HUDFactory.create( "loadscreen-hud" )
-	app_token.hudGroup:insert( loadScreenHUD.display )
-	app_token.loadScreenHUD = loadScreenHUD
-
-	-- system events
-	Runtime:addEventListener( "system", onSystem )
-
-end
-
--- test()
--- test out individual screens
---
-local function test( screen_name, params )
-
-	local test_screen = require( screen_name )
-	test_screen.new( params )
-
-end
-
--- main()
---
-local function main()
-
-	initialize()
-
-	-- Add the group from director class
-	app_token.mainGroup:insert( director.directorView )
-
-	director:changeScene( app_token, "scene-menu" )
-
-end
-
-
--- -- testing structure
--- if ( true ) then
-
--- 	main()
-
--- else
--- 	levelMgr = require( "level_manager" )
-
--- 	initialize()
-
--- 	test( "scene-menu", app_token )
--- 	app_token.data = levelMgr:getLevelData( 'level1' )
--- 	--test( "scene-game", app_token )
-
--- end
 
 
 
