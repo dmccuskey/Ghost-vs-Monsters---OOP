@@ -256,8 +256,8 @@ end
 function MenuView:__initComplete__()
 	self:superCall( '__initComplete__' )
 	--==--
-	self._btn_play.onRelease = self:createCallback( self.playButtonEvent_handler )
-	self._btn_feint.onRelease = self:createCallback( self.feintButtonEvent_handler )
+	self._btn_play.onRelease = self:createCallback( self._playButtonEvent_handler )
+	self._btn_feint.onRelease = self:createCallback( self._feintButtonEvent_handler )
 
 	self:_startButtonAnimations()
 	self:_startGhostAnimation()
@@ -455,18 +455,18 @@ end
 --== Event Handlers
 
 
-function MenuView:playButtonEvent_handler( event )
+function MenuView:_playButtonEvent_handler( event )
 	self._sound_mgr:play( self._sound_mgr.TAP )
 	self:_createLevelOverlay()
 end
 
-function MenuView:feintButtonEvent_handler( event )
+function MenuView:_feintButtonEvent_handler( event )
+	-- print( "MenuView:_feintButtonEvent_handler" )
 	self._sound_mgr:play( self._sound_mgr.TAP )
-	print( "OpenFeint Button Pressed." )
-
-	-- Will display OpenFeint dashboard when uncommented
-	-- (if OpenFeint was properly initialized in main.lua)
-	-- app_token.openfeint.launchDashboard()
+	local srvc = gService.open_feint
+	if srvc then
+		srvc.launchDashboard()
+	end
 end
 
 -- event handler for the Level Overlay

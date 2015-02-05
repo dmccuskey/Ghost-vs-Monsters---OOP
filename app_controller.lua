@@ -59,7 +59,8 @@ local LoadOverlay = require 'component.load_overlay'
 
 _G.gService = {
 	level_mgr=nil,
-	sound_mgr=nil
+	sound_mgr=nil,
+	open_feint=nil
 }
 _G.gMegaphone = nil
 
@@ -324,6 +325,8 @@ function AppController:_loadOpenFeint( options )
 		options.app_id
 	}
 	OpenFeint.init( unpack( params ) )
+
+	gService.open_feint = OpenFeint
 end
 
 
