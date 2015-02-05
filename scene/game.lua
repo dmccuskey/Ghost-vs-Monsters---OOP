@@ -325,7 +325,10 @@ function GameScene:gameViewEvent_handler( event )
 	-- print( "GameScene:gameViewEvent_handler: ", event.type )
 	local target = event.target
 
-	if event.type == target.GAME_ISACTIVE then
+	if event.type == target.GAME_ACTIVE_EVENT then
+		-- pass
+
+	elseif event.type == target.AIMING_EVENT then
 		-- pass
 
 	elseif event.type == target.GAME_OVER_EVENT then

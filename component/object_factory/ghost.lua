@@ -373,10 +373,10 @@ function Ghost:_gameEngineEvent_handler( event )
 	-- print( "Ghost:_gameEngineEvent_handler ", event.type )
 	local target = event.target
 
-	if event.type == target.AIMING_SHOT then
+	if event.type == target.AIMING_EVENT then
 		self:gotoState( Ghost.STATE_AIMING )
 
-	elseif event.type == target.GAME_ISACTIVE then
+	elseif event.type == target.GAME_ACTIVE_EVENT then
 		self._is_animating = event.value
 		self._is_active = value
 

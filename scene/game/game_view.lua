@@ -147,7 +147,7 @@ GameView.TO_NEW_ROUND = 'trans_new_round'
 GameView.STATE_NEW_ROUND = 'state_new_round'
 
 GameView.TO_AIMING_SHOT = 'trans_aiming_shot'
-GameView.AIMING_SHOT = 'state_aiming_shot'
+GameView.STATE_AIMING_SHOT = 'state_aiming_shot'
 
 GameView.TO_SHOT_IN_PLAY = 'trans_shot_in_play'
 GameView.STATE_SHOT_IN_PLAY = 'state_shot_in_play'
@@ -162,10 +162,10 @@ GameView.STATE_END_GAME = 'state_end_game'
 
 GameView.EVENT = 'game-view-event'
 
-GameView.GAME_ISACTIVE = 'game-is-active'
+GameView.GAME_ACTIVE_EVENT = 'game-active'
+GameView.AIMING_EVENT = 'game-aiming'
 GameView.GAME_OVER_EVENT = 'game-is-over'
 GameView.GAME_EXIT_EVENT = 'game-exit'
-GameView.CHARACTER_REMOVED = 'character-removed'
 
 
 --======================================================--
@@ -609,7 +609,7 @@ function GameView.__setters:_game_is_active( value )
 		self:_pausePhysics()
 	end
 
-	self:dispatchEvent( GameView.GAME_ISACTIVE, {value=value} )
+	self:dispatchEvent( GameView.GAME_ACTIVE_EVENT, {value=value} )
 end
 
 
@@ -1195,7 +1195,7 @@ function GameView:touch( event )
 			self:gotoState( GameView.TO_AIMING_SHOT )
 
 		-- RELEASE THE DUDE
-		elseif phase == 'ended' and curr_state == GameView.AIMING_SHOT then
+		elseif phase == 'ended' and curr_state == GameView.STATE_AIMING_SHOT then
 
 			local xF = (-1 * (x - ghost.x)) * 2.15	--> 2.75
 			local yF = (-1 * (y - ghost.y)) * 2.15	--> 2.75
@@ -1242,7 +1242,7 @@ function GameView:touch( event )
 
 	--== AIMING ORB and ARROW
 
-	if curr_state == GameView.AIMING_SHOT then
+	if curr_state == GameView.STATE_AIMING_SHOT then
 
 		local orb = self._shot_orb
 		local arrow = self._shot_arrow
@@ -1453,12 +1453,12 @@ function GameView:do_trans_aiming_shot( params )
 	-- arrow stuff
 	arrow.isVisible = true
 
-	self:gotoState( GameView.AIMING_SHOT )
+	self:gotoState( GameView.STATE_AIMING_SHOT )
 end
 
 function GameView:trans_aiming_shot( next_state, params )
 	-- print( "GameView:trans_aiming_shot: >> ", next_state )
-	if next_state == GameView.AIMING_SHOT then
+	if next_state == GameView.STATE_AIMING_SHOT then
 		self:do_state_aiming_shot( params )
 	else
 		print( "[WARNING] GameView::trans_aiming_shot : " .. tostring( next_state ) )
@@ -1471,15 +1471,15 @@ end
 function GameView:do_state_aiming_shot( params )
 	-- print( "GameView:do_state_aiming_shot" )
 	-- params = params or {}
-	self:setState( GameView.AIMING_SHOT )
-	self:dispatchEvent( GameView.AIMING_SHOT )
+	self:setState( GameView.STATE_AIMING_SHOT )
+	self:dispatchEvent( GameView.AIMING_EVENT )
 end
 function GameView:state_aiming_shot( next_state, params )
 	-- print( "GameView:state_aiming_shot: >> ", next_state )
 	if next_state == GameView.TO_SHOT_IN_PLAY then
 		self:do_trans_shot_in_play( params )
 	else
-		print( "[WARNING] GameView::state_aiming_shot : " .. tostring( next_state ) )
+		print( "[WARNING] GameView:state_aiming_shot", tostring( next_state ) )
 	end
 end
 
