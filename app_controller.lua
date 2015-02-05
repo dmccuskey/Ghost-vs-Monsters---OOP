@@ -270,10 +270,114 @@ end
 
 
 
+--====================================================================--
+--== Private Methods
+
+
+-- _addSceneHandler()
+--
+function AppController:_addSceneHandler( scene )
+	-- print( "AppController:_addSceneHandler: ", scene )
+	if not scene or not scene.EVENT then return end
+	scene:addEventListener( scene.EVENT, self._current_scene_f )
+end
+
+function AppController:_removeSceneHandler( scene )
+	-- print( "AppController:_removeSceneHandler: ", scene )
+	if not scene or not scene.EVENT then return end
+	scene:removeEventListener( scene.EVENT, self._current_scene_f )
+end
+
+
+-- _gotoScene()
+--
+-- does actual Storyboard switching to new scenes
+-- does setup to receive event messages from each scene
+--
+function AppController:_gotoScene( name, options )
+	-- print( "AppController:_gotoScene: ", name )
+	options = options or {}
+	--==--
+	local o, f = self._current_scene, self._current_scene_f
+
+	if composer.getSceneName( 'current' ) == name then return end
+
+	assert( options.params.width and options.params.height, 'ERROR: app sections must be given width and height params' )
+
+	self:_removeSceneHandler( o )
+
+	composer.gotoScene( name, options )
+	o = composer.getScene( name )
+	assert( o, sformat( "ERROR: missing scene '%s'", tostring(name) ) )
+
+	self._current_scene = o
+	self:_addSceneHandler( o )
+end
+
+
+function AppController:_loadOpenFeint( options )
+	OpenFeint = require 'openfeint'
+	local params = {
+		options.app_key,
+		options.app_secret,
+		options.app_title,
+		options.app_id
+	}
+	OpenFeint.init( unpack( params ) )
+end
+
+
+
+--====================================================================--
+--== Event Handlers
+
+
+function AppController:_systemEvent_handler( event )
+	-- print( "AppController:_systemEvent_handler", event.type )
+	local e_type = event.type
+
+	if e_type == 'applicationStart' then
+		-- pass
+
+	elseif e_type == 'applicationSuspend' then
+		if app_token.gameEngine then
+			app_token.gameEngine:pauseGamePlay()
+		end
+
+	elseif e_type == 'applicationExit' then
+		if system.getInfo( 'environment' ) == 'device' then
+			-- prevents iOS 4+ multi-tasking crashes
+			os.exit()
+		end
+	end
+end
+
+
+function AppController:_currentScene_handler( event )
+	print( "AppController:_currentScene_handler", event.type )
+	--==--
+	local cs = self._current_scene
+
+	--== Events from Menu Scene
+
+	if event.type == cs.LEVEL_SELECTED then
+		assert( event.level )
+		self:gotoState( AppController.STATE_GAME, { level=event.level }  )
+
+	--== Events from Game Scene
+
+	elseif event.type == cs.GAME_COMPLETE then
+		self:gotoState( AppController.STATE_MENU )
+
+	else
+		print( "WARNING AppController:_currentScene_handler : " .. tostring( event.type ) )
+	end
+end
+
+
 
 --======================================================--
 --== START: State Machine
-
 
 --== State Create ==--
 
@@ -413,103 +517,8 @@ function AppController:state_game( next_state, params )
 	end
 end
 
-
-
-
---====================================================================--
---== Private Methods
-
-
--- _addSceneHandler()
---
-function AppController:_addSceneHandler( scene )
-	-- print( "AppController:_addSceneHandler: ", scene )
-	if not scene or not scene.EVENT then return end
-	scene:addEventListener( scene.EVENT, self._current_scene_f )
-end
-
-function AppController:_removeSceneHandler( scene )
-	-- print( "AppController:_removeSceneHandler: ", scene )
-	if not scene or not scene.EVENT then return end
-	scene:removeEventListener( scene.EVENT, self._current_scene_f )
-end
-
-
--- _gotoScene()
---
--- does actual Storyboard switching to new scenes
--- does setup to receive event messages from each scene
---
-function AppController:_gotoScene( name, options )
-	-- print( "AppController:_gotoScene: ", name )
-	options = options or {}
-	--==--
-	local o, f = self._current_scene, self._current_scene_f
-
-	if composer.getSceneName( 'current' ) == name then return end
-
-	assert( options.params.width and options.params.height, 'ERROR: app sections must be given width and height params' )
-
-	self:_removeSceneHandler( o )
-
-	composer.gotoScene( name, options )
-	o = composer.getScene( name )
-	assert( o, sformat( "ERROR: missing scene '%s'", tostring(name) ) )
-
-	self._current_scene = o
-	self:_addSceneHandler( o )
-end
-
-
-
---====================================================================--
---== Event Handlers
-
-
-function AppController:_systemEvent_handler( event )
-	-- print( "AppController:_systemEvent_handler", event.type )
-	local e_type = event.type
-
-	if e_type == 'applicationStart' then
-		-- pass
-
-	elseif e_type == 'applicationSuspend' then
-		if app_token.gameEngine then
-			app_token.gameEngine:pauseGamePlay()
-		end
-
-	elseif e_type == 'applicationExit' then
-		if system.getInfo( 'environment' ) == 'device' then
-			-- prevents iOS 4+ multi-tasking crashes
-			os.exit()
-		end
-	end
-end
-
-
-function AppController:_currentScene_handler( event )
-	print( "AppController:_currentScene_handler", event.type )
-	--==--
-	local cs = self._current_scene
-
-	--== Events from Menu Scene
-
-	if event.type == cs.LEVEL_SELECTED then
-		assert( event.level )
-		self:gotoState( AppController.STATE_GAME, { level=event.level }  )
-
-	--== Events from Game Scene
-
-	elseif event.type == cs.GAME_COMPLETE then
-		self:gotoState( AppController.STATE_MENU )
-
-	else
-		print( "WARNING AppController:_currentScene_handler : " .. tostring( event.type ) )
-	end
-end
-
-
-
+--== END: State Machine
+--======================================================--
 
 
 
