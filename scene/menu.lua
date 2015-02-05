@@ -34,11 +34,6 @@ local Utils = require 'lib.dmc_corona.dmc_utils'
 local MenuView = require 'scene.menu.menu_view'
 local LoadOverlay = require 'component.load_overlay'
 
---== Services
-
-local LevelMgr = require 'service.level_manager'
-local SoundMgr = require 'service.sound_manager'
-
 
 
 --====================================================================--
@@ -47,29 +42,6 @@ local SoundMgr = require 'service.sound_manager'
 
 local scene = nil -- composer scene
 
-
-
---====================================================================--
---== Support Functions
-
-
-
-local function _destroyView( key )
-	-- print( '_destroyView ', key )
-
-	local o, f
-
-	o = sgViewMgr:removeView( key )
-
-	if not o then return end -- we never created one
-
-	f = sgViewCallbacks[ key ]
-	sgViewCallbacks[ key ] = nil
-
-	o:removeEventListener( o.EVENT, f )
-	o:removeSelf()
-
-end
 
 
 --====================================================================--
@@ -89,17 +61,16 @@ MenuScene.STATE_CREATE = 'state_create'
 MenuScene.STATE_INIT = 'state_init'
 MenuScene.STATE_LOADING = 'state_loading'
 MenuScene.STATE_NORMAL = 'state_normal'
+MenuScene.STATE_SELECT = 'state_select'
 MenuScene.STATE_COMPLETE = 'state_complete'
 
+
+--======================================================--
+-- Start: Emulate DMC Setup
 
 function MenuScene:__init__( params )
 	-- print( "MenuScene:__init__", params )
 	--==--
-
-	--== Sanity Check
-
-	assert( params.sound_mgr and params.sound_mgr:isa(SoundMgr), "Level Overlay requires param 'sound_mgr'")
-	assert( params.level_mgr and params.level_mgr:isa(LevelMgr), "Level Overlay requires param 'level_mgr'")
 
 	--== Properties ==--
 
@@ -108,8 +79,8 @@ function MenuScene:__init__( params )
 
 	--== Services ==--
 
-	self._level_mgr = params.level_mgr
-	self._sound_mgr = params.sound_mgr
+	self._level_mgr = gService.level_mgr
+	self._sound_mgr = gService.sound_mgr
 
 	--== Display Objects ==--
 
@@ -123,7 +94,7 @@ function MenuScene:__init__( params )
 	self._view_load = nil
 	self._view_load_f = nil
 
-	self:setState( self.STATE_CREATE )
+	self:setState( MenuScene.STATE_CREATE )
 end
 
 
@@ -189,11 +160,20 @@ function MenuScene:__undoInitComplete__()
 	self:_destroyMenuView()
 end
 
+-- End: Emulate DMC Setup
+--======================================================--
+
+
+--====================================================================--
+--== Public Methods
+
+
+-- none
+
 
 
 --====================================================================--
 --== Private Methods
-
 
 
 function MenuScene:_createLoadOverlay()
@@ -280,6 +260,42 @@ function MenuScene:_destroyMenuView()
 end
 
 
+
+--====================================================================--
+--== Event Handlers
+
+
+-- event handler for the Menu View
+--
+function MenuScene:_menuViewEvent_handler( event )
+	print( "MenuScene:_menuViewEvent_handler: ", event.type )
+	local target = event.target
+
+	if event.type == target.SELECTED then
+		local result = event.data
+		self:gotoState( self.STATE_NORMAL, {level=result.level} )
+	else
+		print( "MenuScene:_menuViewEvent_handler unknown event", event.type )
+	end
+
+end
+
+-- event handler for the Load Overlay
+--
+function MenuScene:_loadViewEvent_handler( event )
+	-- print( "MenuScene:_loadViewEvent_handler: ", event.type )
+	local target = event.target
+
+	if event.type == target.COMPLETE then
+		self:gotoState( self.STATE_NORMAL )
+	else
+		print( "MenuScene:_loadViewEvent_handler unknown event", event.type )
+	end
+
+end
+
+
+
 --======================================================--
 -- START: STATE MACHINE
 
@@ -326,12 +342,21 @@ function MenuScene:do_state_normal( params )
 	--==--
 	self:setState( MenuScene.STATE_NORMAL )
 	self:_destroyLoadOverlay()
+
+	if params.level then
+		scene:dispatchEvent{
+			name=scene.EVENT,
+			type=scene.LEVEL_SELECTED,
+			level=params.level
+		}
+	end
+
 end
 
 function MenuScene:state_normal( next_state, params )
-	-- print( "MenuScene:state_normal: >> ", next_state )
+	print( "MenuScene:state_normal: >> ", next_state )
 	if next_state == MenuScene.STATE_NORMAL then
-		-- pass
+		self:do_state_normal( params )
 	elseif next_state == MenuScene.STATE_COMPLETE then
 		self:do_state_complete( params )
 	else
@@ -343,64 +368,23 @@ end
 --== State Complete ==--
 
 function MenuScene:do_state_complete( params )
-	-- print( "MenuScene:do_state_complete" )
+	print( "MenuScene:do_state_complete" )
 	params = params or {}
 	--==--
-	assert( params.level )
-
 	self:setState( MenuScene.STATE_COMPLETE )
-	self:_destroyLoadOverlay()
 
-	scene:dispatchEvent{
-		name=scene.EVENT,
-		type=scene.LEVEL_SELECTED,
-		level=params.level
-	}
+	self:_destroyLoadOverlay()
 end
 
 function MenuScene:state_complete( next_state, params )
 	-- print( "MenuScene:state_complete: >> ", next_state )
 
-	print( "WARNING::state_complete : " .. tostring( next_state ) )
+	print( "WARNING::MenuScene:state_complete : " .. tostring( next_state ) )
 end
 
 -- END: STATE MACHINE
 --======================================================--
 
-
-
---====================================================================--
---== Event Handlers
-
-
--- event handler for the Menu View
---
-function MenuScene:_menuViewEvent_handler( event )
-	-- print( "MenuScene:_menuViewEvent_handler: ", event.type )
-	local target = event.target
-
-	if event.type == target.SELECTED then
-		local result = event.data
-		self:gotoState( self.STATE_COMPLETE, {level=result.level} )
-	else
-		print( "MenuScene:_menuViewEvent_handler unknown event", event.type )
-	end
-
-end
-
--- event handler for the Load Overlay
---
-function MenuScene:_loadViewEvent_handler( event )
-	-- print( "MenuScene:_loadViewEvent_handler: ", event.type )
-	local target = event.target
-
-	if event.type == target.COMPLETE then
-		self:gotoState( self.STATE_NORMAL )
-	else
-		print( "MenuScene:_loadViewEvent_handler unknown event", event.type )
-	end
-
-end
 
 
 
@@ -428,7 +412,8 @@ function scene:create( event )
 end
 
 function scene:show( event )
-	-- print( "Menu Scene:show" )
+	print( "Menu Scene:show" )
+	Utils.print( event )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
