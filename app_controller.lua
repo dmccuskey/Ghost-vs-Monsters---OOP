@@ -306,7 +306,9 @@ function AppController:do_state_initialize( params )
 
 	-- Init Level Manager
 
-	self._level_mgr = LevelMgr:new()
+	o = LevelMgr:new()
+	gService.level_mgr = o
+	self._level_mgr = o
 
 	-- Init Sound Manager
 
