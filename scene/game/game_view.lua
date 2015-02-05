@@ -73,21 +73,6 @@ local function DisplayReferenceFactory( name )
 
 end
 
--- comma_value()
---
-local function comma_value( amount )
-	local formatted = amount
-	while true do
-		formatted, k = string.gsub( formatted, "^(-?%d+)(%d%d%d)", '%1,%2' )
-		if ( k==0 ) then
-			break
-		end
-	end
-
-	return formatted
-end
-
-
 
 -- saveValue() --> used for saving high score, etc.
 
@@ -563,7 +548,7 @@ function GameView.__setters:_game_score( value )
 
 	-- update scoreboard
 	local o = self._txt_score
-	o.text = comma_value( value )
+	o.text = AppUtils.comma_value( value )
 	o.anchorX, o.anchorY = 1, 0
 	o.x, o.y = W-H_MARGIN, V_MARGIN
 end
