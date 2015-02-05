@@ -158,7 +158,13 @@ end
 --== Public Methods
 
 
--- none
+-- getGameView()
+--
+-- setup as part of communication example
+--
+function GameScene:getGameView()
+	return self._view_game
+end
 
 
 
@@ -510,6 +516,21 @@ scene:addEventListener( 'destroy', scene )
 
 -- END: composer scene setup
 --======================================================--
+
+
+
+--====================================================================--
+--== Public Methods
+
+
+-- getGameView()
+--
+-- setup as part of communication example
+--
+function scene:getGameView()
+	return GameScene:getGameView()
+end
+
 
 
 

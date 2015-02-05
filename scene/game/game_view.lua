@@ -211,6 +211,9 @@ function GameView:__init__( params )
 
 	self._sound_mgr = gService.sound_mgr
 
+	self._enemy_f = nil
+	self._megaphone_f = nil
+
 	--== Display Groups
 
 	self._dg_game = nil -- all game items items
@@ -438,6 +441,11 @@ function GameView:__initComplete__()
 	f = self:createCallback( self._enemyEvent_handler )
 	self._enemy_f = f
 
+	-- megaphone communication
+	f = self:createCallback( self._megaphoneEvent_handler )
+	gMegaphone:listen( f )
+	self._megaphone_f = f
+
 	o = self._pause_overlay
 	f = self:createCallback( self._pauseOverlayEvent_handler )
 	o:addEventListener( o.EVENT, f )
@@ -462,6 +470,11 @@ function GameView:__undoInitComplete__()
 	f = self._pause_overlay_f
 	o:removeEventListener( o.EVENT, f )
 	self._pause_overlay_f = nil
+
+	-- megaphone communication
+	f = self._megaphone_f
+	gMegaphone:ignore( f )
+	self._megaphone_f = nil
 
 	self._enemy_f = nil
 	self._character_f = nil
@@ -493,6 +506,10 @@ end
 function GameView:pauseGamePlay()
 	-- print( "GameView:pauseGamePlay" )
 	self._game_is_active = false -- setter
+end
+function GameView:resumeGamePlay()
+	print( "GameView:resumeGamePlay" )
+	self._game_is_active = true -- setter
 end
 
 
@@ -1067,6 +1084,22 @@ end
 
 --====================================================================--
 --== Event Handlers
+
+
+-- megaphone communication
+--
+function GameView:_megaphoneEvent_handler( event )
+	-- print( "GameView:_megaphoneEvent_handler", event.type )
+	local target = event.target
+
+	if event.type == target.PAUSE_GAMEPLAY then
+		self:pauseGamePlay()
+
+	elseif event.type == target.RESUME_GAMEPLAY then
+		self:resumeGamePlay()
+
+	end
+end
 
 
 function GameView:_ghostEvent_handler( event )

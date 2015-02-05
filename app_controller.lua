@@ -10,6 +10,7 @@
 --[[
 exports the following globals:
 * gService
+* gMegaphone
 --]]
 
 --====================================================================--
@@ -34,6 +35,7 @@ local json = require 'json'
 
 --== App Lib Imports ==--
 
+local Megaphone = require 'service.megaphone'
 local Objects = require 'lib.dmc_corona.dmc_objects'
 local StatesMixModule = require 'lib.dmc_corona.dmc_states_mix'
 local Utils = require 'lib.dmc_corona.dmc_utils'
@@ -55,7 +57,11 @@ local LoadOverlay = require 'component.load_overlay'
 --== Setup, Constants
 
 
-_G.gService = {}
+_G.gService = {
+	level_mgr=nil,
+	sound_mgr=nil
+}
+_G.gMegaphone = nil
 
 local sformat = string.format
 
@@ -322,21 +328,77 @@ end
 
 
 
+--[[
+there are at least two ways to communicate with the Game View, either
+* by direct communication, we get the Scene and ask for the Game View
+* via global communicator, we send messages via Megaphone
+
+both are setup so you can see the difference.
+--]]
+
+
+function AppController:_pauseGamePlay( options )
+
+	--== direct communication
+	--[[
+		local game_scene, game_view
+		game_scene = composer.getScene( 'scene.game' )
+		-- simple output to show details
+		if LOCAL_DEBUG and not game_scene then
+			print("GameView not yet loaded")
+			return
+		end
+		game_view = game_scene:getGameView()
+		if game_view then game_view:pauseGamePlay() end
+	--]]
+
+	--== megaphone communication
+
+	gMegaphone:say( gMegaphone.PAUSE_GAMEPLAY )
+
+end
+
+function AppController:_resumeGamePlay( options )
+
+	--== direct communication
+	--[[
+		local game_scene, game_view
+		game_scene = composer.getScene( 'scene.game' )
+		-- simple output to show details
+		if LOCAL_DEBUG and not game_scene then
+			print("GameView not yet loaded")
+			return
+		end
+		game_view = game_scene:getGameView()
+		if game_view then game_view:resumeGamePlay() end
+	--]]
+
+	--== megaphone communication
+
+	gMegaphone:say( gMegaphone.RESUME_GAMEPLAY )
+
+end
+
+
+
+
+
 --====================================================================--
 --== Event Handlers
 
 
 function AppController:_systemEvent_handler( event )
-	-- print( "AppController:_systemEvent_handler", event.type )
+	print( "AppController:_systemEvent_handler", event.type )
 	local e_type = event.type
 
 	if e_type == 'applicationStart' then
 		-- pass
 
 	elseif e_type == 'applicationSuspend' then
-		if app_token.gameEngine then
-			app_token.gameEngine:pauseGamePlay()
-		end
+		self:_pauseGamePlay()
+
+	elseif e_type == 'applicationResume' then
+		self:_resumeGamePlay()
 
 	elseif e_type == 'applicationExit' then
 		if system.getInfo( 'environment' ) == 'device' then
@@ -406,19 +468,23 @@ function AppController:do_state_initialize( params )
 	Utils.setStatusBarDefault( Utils.STATUS_BAR_TRANSLUCENT )
 	Utils.setStatusBar( 'hide' )
 
-	-- Init Level Manager
+	-- Megaphone communicator
+
+	gMegaphone = Megaphone
+
+	-- Level Manager
 
 	o = LevelMgr:new()
 	gService.level_mgr = o
 	self._level_mgr = o
 
-	-- Init Sound Manager
+	-- Sound Manager
 
 	o = SoundMgr:new()
 	gService.sound_mgr = o
 	self._sound_mgr = o
 
-	-- Init Open Feint
+	-- Open Feint
 
 	if self._open_feint then
 		self:_loadOpenFeint( self._open_feint )
