@@ -44,6 +44,11 @@ local newClass = Objects.newClass
 local ComponentBase = Objects.ComponentBase
 local StatesMix = StatesMixModule.StatesMix
 
+local mCeil = math.ceil
+local mAtan2 = math.atan2
+local mPi = math.pi
+local mSqrt = math.sqrt
+
 local LOCAL_DEBUG = true
 
 
@@ -201,7 +206,11 @@ function GameView:__init__( params )
 	self._height = params.height
 
 	self._level_data = params.level_data
-	self.__game_is_active = false	-- our saved value
+	self.__game_is_active = false
+
+	self._physics_is_active = false
+
+	self._tracking_timer = nil
 
 	self._screen_position = ""	-- "left" or "right"
 
@@ -228,7 +237,7 @@ function GameView:__init__( params )
 	self._dg_shot = nil -- shot feedback items
 	self._dg_ph_game = nil -- physics game items
 	self._dg_ph_fore = nil -- physics foreground items
-	self._dg_ph_trail = nil -- physics foreground items
+	self._dg_ph_trail = nil -- physics trail
 
 	--== Display Objects
 
@@ -246,12 +255,10 @@ function GameView:__init__( params )
 
 	self._txt_score = nil
 
-	self._trackingTimer = nil
-
-	-- start physics engine here, so it doesn't crash
-	self:_startPhysics( true )
-	physics.setDrawMode( "normal" )	-- set to "normal" "debug" or "hybrid" to see collision boundaries
-	physics.setGravity( 0, 11 )	--> 0, 9.8 = Earth-like gravity
+	-- -- start physics engine here, so it doesn't crash
+	-- self:_startPhysics( true )
+	-- physics.setDrawMode( "normal" )	-- set to "normal" "debug" or "hybrid" to see collision boundaries
+	-- physics.setGravity( 0, 11 )	--> 0, 9.8 = Earth-like gravity
 
 	self:setState( GameView.STATE_CREATE )
 end
@@ -265,10 +272,8 @@ function GameView:_undoInit()
 		timer.cancel( self._continueTextTimer )
 		self._continueTextTimer = nil
 	end
-	if self._trackingTimer then
-		timer.cancel( self._trackingTimer )
-		self._trackingTimer = nil
-	end
+	self:_stopTrackingTimer()
+	self:_clearTrackingDots()
 
 	self.level_data = nil -- setter
 
@@ -290,7 +295,7 @@ function GameView:__createView__()
 	local H_CENTER, V_CENTER = W*0.5, H*0.5
 	local H_MARGIN, V_MARGIN = 15, 10
 
-	local dg, o, tmp
+	local dg, o
 
 	-- setup display primer
 
@@ -318,7 +323,7 @@ function GameView:__createView__()
 	self._dg_overlay = o
 
 
-	dg = self._dg_game -- temp for display group
+	dg = self._dg_game -- display group temp
 
 	-- background items group
 
@@ -345,17 +350,11 @@ function GameView:__createView__()
 	dg:insert( o )
 	self._dg_ph_game = o
 
-	-- TODO:
-	-- self:_createPhysicsGameItems()
-
 	-- physics forground game items
 
 	o = display.newGroup()
 	dg:insert( o )
 	self._dg_ph_fore = o
-
-	-- TODO:
-	-- self:_createPhysicsForegroundItems()
 
 	-- physics trailgroup items
 
@@ -365,7 +364,7 @@ function GameView:__createView__()
 
 	--== Setup Overlay Items
 
-	dg = self._dg_overlay -- temp for display group
+	dg = self._dg_overlay -- display group temp
 
 	-- score display
 
@@ -402,45 +401,55 @@ end
 function GameView:__undoCreateView__()
 	print( "GameView:__undoCreateView__" )
 
-	local obj, group
-	local layer = self.layer
-	local gameGroup = layer.gameGroup
+	local o
 
-	-- Game Details HUD
-	self:_removeGameDetailsHUD()
-	gameGroup:remove( layer.details )
+	o = self._pause_overlay
+	o:removeSelf()
+	self._pause_overlay = nil
 
-	-- Tracking Group
-	group = layer.trailGroup
-	for i = group.numChildren, 1, -1 do
-		group:remove( i )
-	end
-	gameGroup:remove( layer.trailGroup )
+	o = self._txt_continue
+	o:removeSelf()
+	self._txt_continue = nil
 
-	-- physics forground items
-	self:_removeDataItems( layer.physicsBackgroundGroup, { is_physics=true } )
-	gameGroup:remove( layer.physicsBackgroundGroup )
+	o = self._txt_score
+	o:removeSelf()
+	self._txt_score  = nil
 
-	-- physics game group
-	self:_removeDataItems( layer.physicsGameGroup, { is_physics=true } )
-	gameGroup:remove( layer.physicsGameGroup )
+	o = self._dg_ph_trail
+	o:removeSelf()
+	self._dg_ph_trail = nil
 
-	-- shot feedback items
-	group = layer.shot
-	for i = group.numChildren, 1, -1 do
-		group:remove( i )
-	end
-	gameGroup:remove( layer.shot )
+	o = self._dg_ph_fore
+	o:removeSelf()
+	self._dg_ph_fore = nil
 
-	-- physics background items
-	self:_removeDataItems( layer.physicsBackgroundGroup, { is_physics=true } )
-	gameGroup:remove( layer.physicsBackgroundGroup )
+	o = self._dg_ph_game
+	o:removeSelf()
+	self._dg_ph_game = nil
 
-	-- background items
-	self:_removeDataItems( layer.backgroundGroup )
-	gameGroup:remove( layer.backgroundGroup )
+	o = self._dg_shot
+	o:removeSelf()
+	self._dg_shot = nil
 
-	layer.gameGroup:removeSelf()
+	o = self._dg_ph_bg
+	o:removeSelf()
+	self._dg_ph_bg = nil
+
+	o = self._dg_bg
+	o:removeSelf()
+	self._dg_bg  = nil
+
+	o = self._dg_overlay
+	o:removeSelf()
+	self._dg_overlay  = nil
+
+	o = self._dg_game
+	o:removeSelf()
+	self._dg_game  = nil
+
+	o = self._primer
+	o:removeSelf()
+	self._primer  = nil
 
 	--==--
 	self:superCall( '__undoCreateView__' )
@@ -458,24 +467,39 @@ function GameView:__initComplete__()
 	f = self:createCallback( self._ghostEvent_handler )
 	self._character_f = f
 
+	f = self:createCallback( self._enemyEvent_handler )
+	self._enemy_f = f
+
 	o = self._pause_overlay
 	f = self:createCallback( self._pauseOverlayEvent_handler )
 	o:addEventListener( o.EVENT, f )
 	self._pause_overlay_f = f
 
-	-- self.level_data = self._level_data -- setter
+	Runtime:addEventListener( 'touch', self )
+	Runtime:addEventListener( 'enterFrame', self )
 
 	self:_pausePhysics()
 
-	Runtime:addEventListener( 'touch', self )
-	Runtime:addEventListener( 'enterFrame', self )
 end
 function GameView:__undoInitComplete__()
 	--print( "GameView:__undoInitComplete__" )
+	local o, f
+
+	self:_destroyAllLevelObjects()
+
+	self:_stopPhysics() -- after destroy objects
+
 	Runtime:removeEventListener( 'touch', self )
 	Runtime:removeEventListener( 'enterFrame', self )
 
-	self:_stopPhysics()
+	o = self._pause_overlay
+	f = self._pause_overlay_f
+	o:removeEventListener( o.EVENT, f )
+	self._pause_overlay_f = nil
+
+	self._enemy_f = nil
+	self._character_f = nil
+
 	--==--
 	self:superCall( '__undoCreateView__' )
 end
@@ -599,6 +623,23 @@ function GameView.__setters:_game_is_active( value )
 end
 
 
+
+function GameView.__setters:_is_tracking_character( value )
+	print("GameView:_is_tracking_character ", value )
+	assert( type(value)=='boolean' )
+
+	local dg = self._dg_ph_trail
+
+	if value then
+		self:_clearTrackingDots()
+		self:_startTrackingTimer()
+	else
+		self:_stopTrackingTimer()
+	end
+end
+
+
+
 -- getter/setter: _text_is_blinking()
 --
 function GameView.__getters:_text_is_blinking()
@@ -633,6 +674,78 @@ end
 
 --== Methods ==--
 
+
+function GameView:_addGameObject( item, group, is_physics )
+	print( "GameView:_addGameObject", item, is_physics )
+	local ENEMY_NAME = self._level_data.info.enemyName
+	local o, d
+
+	-- most of the creation magic happens in this line
+	-- game objects are created from level data entries
+	o = ObjectFactory.create( item.name, {game_engine=self} )
+	assert( o, "object not created" )
+
+	-- process attributes found in the level data
+	if item.reference then
+		o.anchorX, o.anchorY = unpack( DisplayReferenceFactory( item.reference )  )
+	end
+	-- TODO: process special properties and layer the rest
+	if item.rotation then o.rotation = item.rotation end
+	if item.alpha then o.alpha = item.alpha end
+	if item.x then o.x = item.x end
+	if item.y then o.y = item.y end
+
+	-- add object to the display group
+	d = o
+	if o.view then
+		d = o.view
+	elseif o.display then
+		d = o.display
+	end
+	group:insert( d )
+
+	-- add object to the physics engine
+	if is_physics then
+		physics.addBody( d, o.physicsType, o.physicsProperties )
+	end
+
+	-- listen to enemies and count them
+	if o.TYPE == ENEMY_NAME then
+		self._enemy_count = self._enemy_count + 1
+		if o.EVENT then
+			o:addEventListener( o.EVENT, self._enemy_f )
+		end
+	end
+
+end
+
+
+function GameView:_removeGameObject( obj, is_physics )
+	print( "GameView:_removeGameObject", item, is_physics )
+	local ENEMY_NAME = self._level_data.info.enemyName
+	local d
+
+	obj = getDMCObject( obj )
+	d = obj
+	if obj.view then
+		d = obj.view
+	elseif obj.display then
+		d = obj.display
+	end
+
+	if is_physics and physics.removeBody then
+		if not physics.removeBody( d ) then
+			print( "\n\nERROR: COULD NOT REMOVE BODY FROM PHYSICS ENGINE\n\n")
+		end
+	end
+
+	if obj.TYPE == ENEMY_NAME and obj.EVENT then
+		obj:removeEventListener( obj.EVENT, self._enemy_f )
+	end
+
+	obj:removeSelf()
+end
+
 -- _addDataItems()
 --
 -- loop through game data items and put on stage
@@ -642,49 +755,11 @@ function GameView:_addDataItems( data, group, params )
 	params = params or {}
 	if params.is_physics==nil then params.is_physics=false end
 	--==--
-
-	local is_physics = params.is_physics
-	local o, d
-
 	for _, item in ipairs( data ) do
 		print( _, item.name, item )
 		-- item is one of the entries in our data file
-
-		-- most of the creation magic happens in this line
-		-- game objects are created from level data entries
-		o = ObjectFactory.create( item.name, {game_engine=self} )
-		assert( o, "object not created" )
-
-		-- process attributes found in the level data
-		if item.reference then
-			o.anchorX, o.anchorY = unpack( DisplayReferenceFactory( item.reference )  )
-		end
-		-- TODO: process special properties and layer the rest
-		if item.rotation then o.rotation = item.rotation end
-		if item.alpha then o.alpha = item.alpha end
-		if item.x then o.x = item.x end
-		if item.y then o.y = item.y end
-
-		-- add new object to the display group and physics engine
-		d = o
-		if o.view then
-			-- type is of dmc_object
-			d = o.view
-		elseif o.display then
-			d = o.display
-		end
-		if is_physics then
-			physics.addBody( d, o.physicsType, o.physicsProperties )
-		end
-		group:insert( d )
-
-		-- count enemies being place on screen
-		if o.myName == self._level_data.info.enemyName then
-			self._enemy_count = self._enemy_count + 1
-			o:addEventListener( o.UPDATE_EVENT, self )
-		end
+		self:_addGameObject( item, group, params.is_physics )
 	end
-
 end
 
 -- _removeDataItems()
@@ -696,73 +771,52 @@ function GameView:_removeDataItems( group, params )
 	local params = params or {}
 	if params.is_physics==nil then params.is_physics=false end
 	--==--
-
-	local is_physics = params.is_physics
-	local o, d
-
 	for i = group.numChildren, 1, -1 do
-		o = group[ i ]
-		-- TODO: make this a little cleaner. need API for it
-
-		o = getDMCObject( o )
-		-- if o.__dmcRef then
-		-- 	o = o.__dmcRef
-		-- end
-		if is_physics then
-			d = o
-			if o.isa ~= nil and o:isa( CoronaBase ) then
-				d = o.display
-			end
-			if physics.removeBody and not physics.removeBody( d ) then
-				print( "\n\nERROR: COULD NOT REMOVE BODY FROM PHYSICS ENGINE\n\n")
-			end
-		end
-		if o.myName ~= self._level_data.info.enemyName then
-			o:removeSelf()
-		else
-			o:removeEventListener( o.UPDATE_EVENT, self )
-			-- let the character know that GE is done, can remove itself
-			-- self:dispatchEvent( GameView.CHARACTER_REMOVED, {item=o} )
-		end
+		print( group[i] )
+		self:_removeGameObject( group[i], params.is_physics )
 	end
-
 end
-
 
 
 -- _createBackground()
 --
 function GameView:_createBackgroundItems()
+	-- print( "GameView:_createBackgroundItems" )
 	local data = self._level_data.backgroundItems
 	if data then
 		self:_addDataItems( data, self._dg_bg )
 	end
 end
 function GameView:_destroyBackgroundItems()
+	-- print( "GameView:_destroyBackgroundItems" )
 	self:_removeDataItems( self._dg_bg )
 end
 
 -- _createPhysicsBackgroundItems()
 --
 function GameView:_createPhysicsBackgroundItems()
+	-- print( "GameView:_createPhysicsBackgroundItems" )
 	local data = self._level_data.physicsBackgroundItems
 	if data then
 		self:_addDataItems( data, self._dg_ph_bg, {is_physics=true} )
 	end
 end
 function GameView:_destroyPhysicsBackgroundItems()
-	self:_removeDataItems( self._dg_bg, {is_physics=true} )
+	-- print( "GameView:_destroyPhysicsBackgroundItems" )
+	self:_removeDataItems( self._dg_ph_bg, {is_physics=true} )
 end
 
 -- _createPhysicsGameItems()
 --
 function GameView:_createPhysicsGameItems()
+	print( "GameView:_createPhysicsGameItems" )
 	local data = self._level_data.physicsGameItems
 	if data then
 		self:_addDataItems( data, self._dg_ph_game, {is_physics=true} )
 	end
 end
 function GameView:_destroyPhysicsGameItems()
+	print( "GameView:_destroyPhysicsGameItems" )
 	self:_removeDataItems( self._dg_ph_game, {is_physics=true} )
 end
 
@@ -770,36 +824,78 @@ end
 -- _createPhysicsForegroundItems()
 --
 function GameView:_createPhysicsForegroundItems()
-	if self._level_data.physicsForgroundItems then
-		self:_addDataItems( self._level_data.physicsForgroundItems, self.layer.physicsForegroundGroup, { is_physics=true } )
+	local data = self._level_data.physicsForgroundItems
+	if data then
+		self:_addDataItems( data, self._dg_ph_fore, {is_physics=true} )
 	end
+end
+function GameView:_destroyPhysicsForegroundItems()
+	print( "GameView:_destroyPhysicsForegroundItems" )
+	self:_removeDataItems( self._dg_ph_fore, {is_physics=true} )
 end
 
 
--- _createLevelObjects()
+-- _createAllLevelObjects()
 --
-function GameView:_createLevelObjects()
+function GameView:_createAllLevelObjects()
 
 	-- cleanup
-	self:_destroyLevelObjects()
+	self:_destroyAllLevelObjects()
 
 	self:_createBackgroundItems()
 	self:_createPhysicsBackgroundItems()
-	-- self:_createPhysicsGameItems()
-	-- self:_createPhysicsForegroundItems()
+	self:_createPhysicsGameItems()
+	self:_createPhysicsForegroundItems()
 
 end
 
--- _destroyLevelObjects()
+-- _destroyAllLevelObjects()
 --
-function GameView:_destroyLevelObjects()
-	-- self:_destroyPhysicsForegroundItems()
-	-- self:_destroyPhysicsGameItems()
+function GameView:_destroyAllLevelObjects()
+	self:_destroyPhysicsForegroundItems()
+	self:_destroyPhysicsGameItems()
 	self:_destroyPhysicsBackgroundItems()
 	self:_destroyBackgroundItems()
 end
 
 
+
+--== Tracking
+
+function GameView:_clearTrackingDots()
+	local dg = self._dg_ph_trail
+	for i = dg.numChildren,1,-1 do
+		local o = dg[i]
+		o.parent:remove( o )
+	end
+end
+
+function GameView:_startTrackingTimer()
+	local dg = self._dg_ph_trail
+	local char = self._character
+
+	self:_stopTrackingTimer()
+
+	local startDots = function()
+		local odd = true
+		local createDot = function()
+			local trailDot
+			local size = ( odd and 1.5 ) or 2.5
+			trailDot = display.newCircle( dg, char.x, char.y, size )
+			trailDot:setFillColor( 1,1,1,1 )
+			odd = not odd
+		end
+		self._tracking_timer = timer.performWithDelay( 50, createDot, 50 )
+	end
+	startDots()
+end
+
+
+function GameView:_stopTrackingTimer()
+	if not self._tracking_timer then return end
+	timer.cancel( self._tracking_timer )
+	self._tracking_timer = nil
+end
 
 
 
@@ -872,20 +968,20 @@ end
 
 
 function GameView:_startPhysics( param )
-	--print( "GameView:_startPhysics" )
-	self.physicsIsActive = true
+	print( "GameView:_startPhysics" )
+	self._physics_is_active = true
 	physics.start( param )
 end
 
 function GameView:_pausePhysics()
 	--print( "GameView:_pausePhysics" )
-	self.physicsIsActive = false
+	self._physics_is_active = false
 	physics.pause()
 end
 
 function GameView:_stopPhysics()
-	--print( "GameView:_stopPhysics" )
-	self.physicsIsActive = false
+	print( "GameView:_stopPhysics" )
+	self._physics_is_active = false
 	physics.stop()
 end
 
@@ -1024,6 +1120,228 @@ end
 
 
 
+
+--====================================================================--
+--== Event Handlers
+
+
+function GameView:_ghostEvent_handler( event )
+	print( "GameView:_ghostEvent_handler", event.type )
+	local target = event.target
+
+	if event.type == target.STATE_BORN then
+		-- pass
+
+	elseif event.type == target.STATE_LIVING then
+		self:gotoState( GameView.STATE_NEW_ROUND )
+
+	elseif event.type == target.STATE_FLYING then
+		self._is_tracking_character = true
+
+	elseif event.type == target.STATE_HIT then
+		self._game_score = self._game_score + 500
+		self._is_tracking_character = false
+
+	elseif event.type == target.STATE_DYING then
+		self._game_lives = self._game_lives - 1
+
+	elseif event.type == target.STATE_DEAD then
+		self:gotoState( GameView.TO_END_ROUND )
+
+	else
+		print("[WARNING] GameView:_ghostEvent_handler", event.type )
+	end
+
+end
+
+
+function GameView:_enemyEvent_handler( event )
+	print( "GameView:_enemyEvent_handler", event.type )
+	local target = event.target
+
+	if event.type == target.STATE_DEAD then
+		self._enemy_count = self._enemy_count - 1
+
+		local newScore = self._game_score + mCeil( 5000 * event.force )
+		self._game_score = newScore
+
+		self:_removeGameObject( target, true )
+
+	else
+		print("[WARNING] GameView:_enemyEvent_handler", event.type )
+	end
+
+end
+
+
+function GameView:_pauseOverlayEvent_handler( event )
+	print( "GameView:_pauseOverlayEvent_handler" )
+	local target = event.target
+
+	if event.type == target.ACTIVE then
+		-- in this sense, "active" means "pause is activated"
+		local pause_is_active = event.is_active
+		self._game_is_active = ( not pause_is_active )
+
+	elseif event.type == target.MENU then
+		self:_stopPhysics()
+		self:dispatchEvent( GameView.GAME_EXIT_EVENT )
+
+	end
+end
+
+
+
+
+function GameView:touch( event )
+	print( "GameView:touch", event.phase )
+
+	local mCeil = math.ceil
+	local mAtan2 = math.atan2
+	local mPi = math.pi
+	local mSqrt = math.sqrt
+
+	local phase = event.phase
+	local x, xStart = event.x, event.xStart
+	local y, yStart = event.y, event.yStart
+
+	local curr_state = self:getState()
+	print( curr_state)
+
+	local ghostObject = self._character
+
+	--== TOUCH HANDLING, active game
+	if self._game_is_active then
+		-- BEGINNING OF AIM
+		if phase == 'began' and curr_state == GameView.STATE_NEW_ROUND and xStart > 115 and xStart < 180 and yStart > 160 and yStart < 230 and self._screen_position == GameView.LEFT_POS then
+
+			self:gotoState( GameView.TO_AIMING_SHOT )
+
+		-- RELEASE THE DUDE
+		elseif phase == 'ended' and curr_state == GameView.AIMING_SHOT then
+
+			local x = event.x
+			local y = event.y
+			local xF = (-1 * (x - ghostObject.x)) * 2.15	--> 2.75
+			local yF = (-1 * (y - ghostObject.y)) * 2.15	--> 2.75
+
+			local data = { xForce=xF, yForce=yF  }
+			self:gotoState( GameView.TO_SHOT_IN_PLAY, {shot=data} )
+
+		-- SWIPE SCREEN
+		elseif phase == 'ended' and curr_state == GameView.STATE_NEW_ROUND and not self._is_panning then
+
+			local newPosition, diff
+
+			-- check which direction we're swiping
+			if event.xStart > event.x then
+				newPosition = GameView.RIGHT_POS
+			elseif event.xStart < event.x then
+				newPosition = GameView.LEFT_POS
+			end
+
+			-- update screen
+			if newPosition == GameView.RIGHT_POS and self._screen_position == "left" then
+				diff = event.xStart - event.x
+				if diff >= 100 then
+					self:_panCamera( newPosition, 700 )
+				else
+					self:_panCamera( self._screen_position, 100 )
+				end
+			else
+				diff = event.x - event.xStart
+				if diff >= 100 then
+					self:_panCamera( newPosition, 700 )
+				else
+					self:_panCamera( self._screen_position, 100 )
+				end
+			end
+
+		-- PROCESS TAP during "Tap To Continue"
+		elseif phase == 'ended' and curr_state == GameView.STATE_END_ROUND then
+			self:gotoState( GameView.TO_CALL_ROUND )
+
+		end
+	end
+
+
+	--== AIMING ORB and ARROW
+
+	if curr_state == GameView.AIMING_SHOT then
+
+		local orb = self._shot_orb
+		local arrow = self._shot_arrow
+
+		local xOffset = ghostObject.x
+		local yOffset = ghostObject.y
+
+		-- Formula math.sqrt( ((event.y - yOffset) ^ 2) + ((event.x - xOffset) ^ 2) )
+		local distanceBetween = mCeil(mSqrt( ((event.y - yOffset) ^ 2) + ((event.x - xOffset) ^ 2) ))
+
+		orb.xScale = -distanceBetween * 0.02
+		orb.yScale = -distanceBetween * 0.02
+
+		-- Formula: 90 + (math.atan2(y2 - y1, x2 - x1) * 180 / PI)
+		local angleBetween = mCeil(mAtan2( (event.y - yOffset), (event.x - xOffset) ) * 180 / mPi) + 90
+
+		ghostObject.rotation = angleBetween + 180
+		arrow.rotation = ghostObject.rotation
+	end
+
+	--== SWIPE START
+
+	if not self._is_panning and curr_state == GameView.STATE_NEW_ROUND then
+		print("here")
+		local dg = self._dg_game
+
+		if self._screen_position == GameView.LEFT_POS then
+			-- Swipe left to go right
+			if xStart > 180 then
+				dg.x = x - xStart
+				if dg.x > 0 then dg.x = 0 end
+			end
+
+		elseif self._screen_position == GameView.RIGHT_POS then
+			-- Swipe right to go to the left
+			dg.x = (x - xStart) - 480
+			if dg.x < -480 then dg.x = -480 end
+		end
+	end
+
+	return true
+end
+
+
+function GameView:enterFrame( event )
+	-- print( "GameView:enterFrame", event )
+
+	local char = self._character
+	local dg = self._dg_game
+	local curr_state = self:getState()
+
+	if self._game_is_active then
+
+		if char then
+			-- CAMERA CONTROL
+			if char.x > 240 and char.x < 720 and curr_state == GameView.STATE_SHOT_IN_PLAY then
+				dg.x = -char.x + 240
+			end
+
+			-- CHECK IF GHOST GOES PAST SCREEN
+			if not char.is_offscreen and curr_state == GameView.STATE_SHOT_IN_PLAY and ( char.x < 0 or char.x >= 960 ) then
+				char.is_offscreen = true
+			end
+
+		end
+
+	end
+
+	return true
+end
+
+
+
+
 --======================================================--
 -- START: STATE MACHINE
 
@@ -1047,7 +1365,6 @@ function GameView:do_state_init( params )
 	--==--
 	self:setState( GameView.STATE_INIT )
 
-	self:_createLevelObjects()
 
 	self._game_is_active = true
 
@@ -1059,6 +1376,14 @@ function GameView:do_state_init( params )
 
 	self._pause_overlay.isVisible = false
 	self._text_is_blinking = false
+
+
+	self:_startPhysics( true )
+	-- set to "normal" "debug" or "hybrid" to see collision boundaries
+	physics.setDrawMode( 'normal' )
+	physics.setGravity( 0, 11 )	--> 0, 9.8 = Earth-like gravity
+
+	self:_createAllLevelObjects() -- after start physics
 
 	self:gotoState( GameView.TO_NEW_ROUND )
 end
@@ -1080,6 +1405,8 @@ function GameView:do_trans_new_round( params )
 	-- params = params or {}
 	--==--
 	self:setState( GameView.TO_NEW_ROUND )
+
+	self:_clearTrackingDots()
 
 	local step1, step2
 
@@ -1319,7 +1646,9 @@ function GameView:do_trans_call_round( params )
 end
 function GameView:trans_call_round( next_state, params )
 	print( "GameView:trans_call_round: >> ", next_state )
-	if next_state == GameView.STATE_END_GAME then
+	if next_state == GameView.TO_NEW_ROUND then
+		self:do_trans_new_round( params )
+	elseif next_state == GameView.STATE_END_GAME then
 		self:do_state_end_game( params )
 	else
 		print("[WARNING] GameView::trans_call_round : " .. tostring( next_state ) )
@@ -1370,322 +1699,6 @@ end
 --======================================================--
 
 
-
-function GameView:isTrackingCharacter( value )
-	--print("GameView:isTrackingCharacter " .. tostring( value ))
-
-	local trailGroup = self.layer.trailGroup
-
-	if value then
-		-- clear the last trail
-		for i = trailGroup.numChildren,1,-1 do
-			local child = trailGroup[i]
-			child.parent:remove( child )
-			child = nil
-		end
-
-		-- start making new dots
-		local startDots = function()
-			local odd = true
-			local char = self._character
-			local dotTimer
-
-			local createDot = function()
-				local trailDot
-				local size = ( odd and 1.5 ) or 2.5
-				trailDot = display.newCircle( trailGroup, char.x, char.y, size )
-				trailDot:setFillColor( 255, 255, 255, 255 )
-
-				--trailGroup:insert( trailDot )
-				odd = not odd
-			end
-
-			self._trackingTimer = timer.performWithDelay( 50, createDot, 50 )
-		end
-		startDots()
-
-	else
-		if self._trackingTimer then timer.cancel( self._trackingTimer ) end
-	end
-end
-
-
-
---====================================================================--
---== Event Handlers
-
-function GameView:_ghostEvent_handler( event )
-	print( "GameView:_ghostEvent_handler", event.type )
-	local target = event.target
-
-	if event.type == target.STATE_BORN then
-		-- pass
-
-	elseif event.type == target.STATE_LIVING then
-		self:gotoState( GameView.STATE_NEW_ROUND )
-
-	elseif event.type == target.STATE_FLYING then
-		self:isTrackingCharacter( true )
-
-	elseif event.type == target.STATE_HIT then
-		self._game_score = self._game_score + 500
-		self:isTrackingCharacter( false )
-
-	elseif event.type == target.STATE_DYING then
-		self._game_lives = self._game_lives - 1
-
-	elseif event.type == target.STATE_DEAD then
-
-		-- if physics.removeBody and not physics.removeBody( target.display ) then
-		-- 	print( "\n\nERROR: COULD NOT REMOVE BODY FROM PHYSICS ENGINE\n\n")
-		-- end
-		-- timer.performWithDelay( 1, function() self:_destroyGhost() end)
-		-- self:_destroyGhost()
-
-		-- target:removeEventListener( target.UPDATE_EVENT, self )
-		-- self._character = nil
-
-		-- -- let the character know that GE is done, can remove itself
-		-- self:dispatchEvent( GameView.CHARACTER_REMOVED, {item=target} )
-		self:gotoState( GameView.TO_END_ROUND )
-
-	else
-		print("WARNING: GameView:_ghostEvent_handler", event.type )
-	end
-
-
-end
-
-function GameView:characterUpdateEvent( event )
-	--print( "GameView:characterUpdateEvent " .. event.type )
-	local target = event.target
-	local mCeil = math.ceil
-
-	-- Process Ghost
-	if target.myName == self._level_data.info.characterName then
-
-		if event.type == target.STATE_LIVING then
-			self:gotoState( GameView.STATE_NEW_ROUND )
-
-		elseif event.type == target.STATE_FLYING then
-			self:isTrackingCharacter( true )
-
-		elseif event.type == target.STATE_HIT then
-			self._game_score = self._game_score + 500
-			self:isTrackingCharacter( false )
-
-		elseif event.type == target.STATE_DYING then
-			self._game_lives = self._game_lives - 1
-
-		elseif event.type == target.STATE_DEAD then
-
-			if physics.removeBody and not physics.removeBody( target.display ) then
-				print( "\n\nERROR: COULD NOT REMOVE BODY FROM PHYSICS ENGINE\n\n")
-			end
-			target:removeEventListener( target.UPDATE_EVENT, self )
-			self._character = nil
-
-			-- let the character know that GE is done, can remove itself
-			self:dispatchEvent( GameView.CHARACTER_REMOVED, {item=target} )
-			self:gotoState( GameView.TO_END_ROUND )
-
-		end
-
-		return true
-
-	-- Process Monster
-	elseif target.myName == self._level_data.info.enemyName then
-
-		if event.type == target.STATE_LIVING then
-			self:setState( GameView.STATE_NEW_ROUND )
-
-		elseif event.type == target.STATE_DEAD then
-
-			self._enemy_count = self._enemy_count - 1
-
-			local newScore = self._game_score + mCeil( 5000 * event.force )
-			self._game_score = newScore
-
-			target:removeEventListener( target.UPDATE_EVENT, self )
-
-			if physics.removeBody and not physics.removeBody( target.display ) then
-				print( "\n\nERROR: COULD NOT REMOVE BODY FROM PHYSICS ENGINE\n\n")
-			end
-
-			-- let the character know that GE is done, can remove itself
-			self:dispatchEvent( GameView.CHARACTER_REMOVED, {item=target} )
-		end
-
-		return true
-	end
-end
-
-
-
-function GameView:_pauseOverlayEvent_handler( event )
-	print( "GameView:_pauseOverlayEvent_handler" )
-	local target = event.target
-
-	if event.type == target.ACTIVE then
-		-- in this sense, "active" means "pause is activated"
-		local pause_is_active = event.is_active
-		self._game_is_active = ( not pause_is_active )
-
-	elseif event.type == target.MENU then
-		self:_stopPhysics()
-		self:dispatchEvent( GameView.GAME_EXIT_EVENT )
-
-	end
-end
-
-
-
-
-function GameView:touch( event )
-	print( "GameView:touch", event.phase )
-
-	local mCeil = math.ceil
-	local mAtan2 = math.atan2
-	local mPi = math.pi
-	local mSqrt = math.sqrt
-
-	local phase = event.phase
-	local x, xStart = event.x, event.xStart
-	local y, yStart = event.y, event.yStart
-
-	local curr_state = self:getState()
-	print( curr_state)
-
-	local ghostObject = self._character
-
-	--== TOUCH HANDLING, active game
-	if self._game_is_active then
-		-- BEGINNING OF AIM
-		if phase == 'began' and curr_state == GameView.STATE_NEW_ROUND and xStart > 115 and xStart < 180 and yStart > 160 and yStart < 230 and self._screen_position == GameView.LEFT_POS then
-
-			self:gotoState( GameView.TO_AIMING_SHOT )
-
-		-- RELEASE THE DUDE
-		elseif phase == 'ended' and curr_state == GameView.AIMING_SHOT then
-
-			local x = event.x
-			local y = event.y
-			local xF = (-1 * (x - ghostObject.x)) * 2.15	--> 2.75
-			local yF = (-1 * (y - ghostObject.y)) * 2.15	--> 2.75
-
-			local data = { xForce=xF, yForce=yF  }
-			self:gotoState( GameView.TO_SHOT_IN_PLAY, {shot=data} )
-
-		-- SWIPE SCREEN
-		elseif phase == 'ended' and curr_state == GameView.STATE_NEW_ROUND and not self._is_panning then
-
-			local newPosition, diff
-
-			-- check which direction we're swiping
-			if event.xStart > event.x then
-				newPosition = GameView.RIGHT_POS
-			elseif event.xStart < event.x then
-				newPosition = GameView.LEFT_POS
-			end
-
-			-- update screen
-			if newPosition == GameView.RIGHT_POS and self._screen_position == "left" then
-				diff = event.xStart - event.x
-				if diff >= 100 then
-					self:_panCamera( newPosition, 700 )
-				else
-					self:_panCamera( self._screen_position, 100 )
-				end
-			else
-				diff = event.x - event.xStart
-				if diff >= 100 then
-					self:_panCamera( newPosition, 700 )
-				else
-					self:_panCamera( self._screen_position, 100 )
-				end
-			end
-
-		-- PROCESS TAP during "Tap To Continue"
-		elseif phase == 'ended' and curr_state == GameView.STATE_END_ROUND then
-			self:gotoState( GameView.TO_CALL_ROUND )
-
-		end
-	end
-
-
-	--== AIMING ORB and ARROW
-
-	if curr_state == GameView.AIMING_SHOT then
-
-		local orb = self._shot_orb
-		local arrow = self._shot_arrow
-
-		local xOffset = ghostObject.x
-		local yOffset = ghostObject.y
-
-		-- Formula math.sqrt( ((event.y - yOffset) ^ 2) + ((event.x - xOffset) ^ 2) )
-		local distanceBetween = mCeil(mSqrt( ((event.y - yOffset) ^ 2) + ((event.x - xOffset) ^ 2) ))
-
-		orb.xScale = -distanceBetween * 0.02
-		orb.yScale = -distanceBetween * 0.02
-
-		-- Formula: 90 + (math.atan2(y2 - y1, x2 - x1) * 180 / PI)
-		local angleBetween = mCeil(mAtan2( (event.y - yOffset), (event.x - xOffset) ) * 180 / mPi) + 90
-
-		ghostObject.rotation = angleBetween + 180
-		arrow.rotation = ghostObject.rotation
-	end
-
-	--== SWIPE START
-
-	if not self._is_panning and curr_state == GameView.STATE_NEW_ROUND then
-		print("here")
-		local dg = self._dg_game
-
-		if self._screen_position == GameView.LEFT_POS then
-			-- Swipe left to go right
-			if xStart > 180 then
-				dg.x = x - xStart
-				if dg.x > 0 then dg.x = 0 end
-			end
-
-		elseif self._screen_position == GameView.RIGHT_POS then
-			-- Swipe right to go to the left
-			dg.x = (x - xStart) - 480
-			if dg.x < -480 then dg.x = -480 end
-		end
-	end
-
-	return true
-end
-
-
-function GameView:enterFrame( event )
-	-- print( "GameView:enterFrame", event )
-
-	local char = self._character
-	local dg = self._dg_game
-	local curr_state = self:getState()
-
-	if self._game_is_active then
-
-		if char then
-			-- CAMERA CONTROL
-			if char.x > 240 and char.x < 720 and curr_state == GameView.STATE_SHOT_IN_PLAY then
-				dg.x = -char.x + 240
-			end
-
-			-- CHECK IF GHOST GOES PAST SCREEN
-			if not char.is_offscreen and curr_state == GameView.STATE_SHOT_IN_PLAY and ( char.x < 0 or char.x >= 960 ) then
-				char.is_offscreen = true
-			end
-
-		end
-
-	end
-
-	return true
-end
 
 
 

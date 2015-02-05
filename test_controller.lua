@@ -119,6 +119,38 @@ local function test_ghostCharacter()
 end
 
 
+--======================================================--
+-- Test: Monster Character
+
+local function test_monsterCharacter()
+	print( "test_monsterCharacter" )
+
+	local GameView = require 'scene.game.game_view'
+	local ObjectFactory = require 'component.object_factory'
+	assert( type(ObjectFactory)=='table', "ERROR: loading Object Factory" )
+
+	local ge = test_gameMainView( true )
+	local o = ObjectFactory.create( ObjectFactory.MONSTER, {game_engine=ge} )
+	o.x, o.y = H_CENTER, V_CENTER
+
+	local f = function( event )
+		print( "Monster Event", event.type )
+
+		if event.type == o.STATE_DEAD then
+			print( "Monster is dead", event.force )
+		else
+			print( "unknown event" )
+		end
+	end
+	o:addEventListener( o.EVENT, f )
+
+	-- test collisions
+	timer.performWithDelay( 500, function() o:postCollision( {force=1.2} ) end)
+	timer.performWithDelay( 1000, function() o:postCollision( {force=2} ) end)
+
+	destroyObjIn( o )
+end
+
 
 --======================================================--
 -- Test: Level Screen
@@ -259,7 +291,7 @@ test_gameMainView = function( create_only )
 
 	o:startGamePlay()
 
-	-- destroyObjIn( o )
+	destroyObjIn( o, 5000 )
 end
 
 
@@ -313,6 +345,7 @@ function TestController.runTests()
 	--== Game Objects
 
 	-- test_ghostCharacter()
+	-- test_monsterCharacter()
 
 
 	--== Component Tests
