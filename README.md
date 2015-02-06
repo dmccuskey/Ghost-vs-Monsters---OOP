@@ -4,10 +4,6 @@ This repo contains the complete app _Ghost vs Monsters_ re-written in an object-
 
 **This new 2.0 release has been modernized for changes over past three years with the Corona SDK engine, DMC Corona Libraries, as well as my coding/organization style.** :)
 
-The original Ghosts vs. Monsters was a physics-based game template designed for mobile devices. It was created by Jonathan Beebe and Biffy Beebe for Corona SDK (http://coronalabs.com).
-
-Many thanks to everyone at Beebe Games and Corona Labs for making the code publicly available!
-
 ### Highlights ###
 
 * Simplification of level data
@@ -33,6 +29,10 @@ Many thanks to everyone at Beebe Games and Corona Labs for making the code publi
 Details about the changes: http://docs.davidmccuskey.com/display/docs/Ghosts+vs+Monsters+Details
 
 *Original version*
+
+The original Ghosts vs. Monsters was a physics-based game template designed for mobile devices. It was created by Jonathan Beebe and Biffy Beebe for Corona SDK (http://coronalabs.com).
+
+Many thanks to everyone at Beebe Games and Corona Labs for making the code publicly available!
 
 * Intro: http://blog.anscamobile.com/2010/12/ghosts-vs-monsters-open-source-game-in-corona-sdk/
 
