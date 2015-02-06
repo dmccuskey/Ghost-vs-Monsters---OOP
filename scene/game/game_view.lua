@@ -1413,8 +1413,6 @@ function GameView:do_trans_new_round( params )
 	--==--
 	self:setState( GameView.TO_NEW_ROUND )
 
-	self:_clearTrackingDots()
-
 	local step1, step2
 
 	step1 = function( e )
