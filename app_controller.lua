@@ -123,6 +123,7 @@ function AppController:__init__( params )
 	self:superCall( StatesMix, '__init__', params )
 	self:superCall( ComponentBase, '__init__', params )
 	params = params or {}
+	if params.use_global_comms==nil then params.use_global_comms=false end
 	--==--
 
 	--== Sanity Check ==--
@@ -135,6 +136,7 @@ function AppController:__init__( params )
 	self._height = display.contentHeight
 
 	self._run_mode = params.mode
+	self._use_global_comms = params.use_global_comms
 
 	self._system_f = nil
 
@@ -336,43 +338,46 @@ both are setup so you can see the difference.
 
 function AppController:_pauseGamePlay( options )
 
-	--== direct communication
-	--[[
+	if self._use_global_comms then
+		--== megaphone communication
+		gMegaphone:say( gMegaphone.PAUSE_GAMEPLAY )
+
+	else
+		--== direct communication
 		local game_scene, game_view
 		game_scene = composer.getScene( 'scene.game' )
 		-- simple output to show details
 		if LOCAL_DEBUG and not game_scene then
-			print("GameView not yet loaded")
+			print( "GameView not loaded" )
 			return
 		end
 		game_view = game_scene:getGameView()
 		if game_view then game_view:pauseGamePlay() end
-	--]]
 
-	--== megaphone communication
+	end
 
-	gMegaphone:say( gMegaphone.PAUSE_GAMEPLAY )
 
 end
 
 function AppController:_resumeGamePlay( options )
 
-	--== direct communication
-	--[[
+	if self._use_global_comms then
+		--== megaphone communication
+		gMegaphone:say( gMegaphone.RESUME_GAMEPLAY )
+
+	else
+		--== direct communication
 		local game_scene, game_view
 		game_scene = composer.getScene( 'scene.game' )
 		-- simple output to show details
 		if LOCAL_DEBUG and not game_scene then
-			print("GameView not yet loaded")
+			print( "GameView not loaded" )
 			return
 		end
 		game_view = game_scene:getGameView()
 		if game_view then game_view:resumeGamePlay() end
-	--]]
 
-	--== megaphone communication
-
-	gMegaphone:say( gMegaphone.RESUME_GAMEPLAY )
+	end
 
 end
 
@@ -470,7 +475,7 @@ function AppController:do_state_initialize( params )
 
 	-- Megaphone communicator
 
-	gMegaphone = Megaphone
+	_G.gMegaphone = Megaphone
 
 	-- Level Manager
 

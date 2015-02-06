@@ -44,6 +44,11 @@ open_feint_params = nil {
 }
 --]]
 
+-- whether component communication is global or direct
+-- if true, then use dmc_megaphone
+--
+local GLOBAL_COMMS = false -- false/true
+
 _G.gMODE = 'RUN'  -- 'TEST'/'RUN'
 
 
@@ -63,6 +68,7 @@ assert( Controller, "GvsM Main: Error loading Controller" )
 
 local params = {
 	-- put here any params required for App or Test here
-	open_feint=open_feint_params
+	open_feint=open_feint_params,
+	use_global_comms=GLOBAL_COMMS
 }
 Controller.run( params )
