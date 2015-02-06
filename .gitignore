@@ -4,6 +4,7 @@
 ehthumbs.db
 Icon?
 Thumbs.db
-lib/dmc_corona
-lib/dmc_widgets
-lib/dmc_widgets.lua
+#lib/dmc_corona
+#lib/dmc_widgets
+#lib/dmc_widgets.lua
+#dmc_corona_boot.lua
