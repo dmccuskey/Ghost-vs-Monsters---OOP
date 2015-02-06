@@ -242,19 +242,7 @@ end
 --== Public Methods
 
 
--- getter: level_mgr
--- returns app level manager
---
-function AppController.__getters:level_mgr()
-	return self._level_mgr
-end
-
--- getter: sound_mgr
--- returns app sound manager
---
-function AppController.__getters:sound_mgr()
-	return self._sound_mgr
-end
+-- none
 
 
 
