@@ -11,11 +11,11 @@ This repo contains the complete app _[Ghost vs Monsters](https://github.com/ansc
 * **new** Fully G2 Compatible
 * **new** now uses Corona Composer (removed Director lib)
 * **new** re-organized files into folders
-* **new** update to latest dmc-corona-lib (incl dmc-objects 2.0)
-* **new** buttons from new dmc-widgets (removed UI lib, dmc-buttons lib)
-* **new** some Component Objects moved to own files (cloud, ghost, monster) (loading overlay, pause overlay, game-over overlay)
+* **new** update to latest [dmc-corona-library](https://github.com/dmccuskey/DMC-Corona-Library) (incl dmc-objects 2.0)
+* **new** buttons from new [dmc-widgets](https://github.com/dmccuskey/DMC-Corona-Widgets) (removed UI lib, dmc-buttons lib)
+* **new** some Component Objects moved to own files (eg, ghost, monster, loading overlay, pause overlay, etc)
 * **new** improved overall code organization
-* **new** example of global communication via dmc-megaphone (can be enabled)
+* **new** example of global communication via [dmc-megaphone](https://github.com/dmccuskey/dmc-megaphone) (can be enabled)
 * **new** managers created for Sounds, Levels (non-visual)
 * **new** new App Controller: controls core app setup and scene navigation
 * **new** new Test Controller: enables full Component test development
