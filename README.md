@@ -2,7 +2,7 @@
 
 This repo contains the complete app _Ghost vs Monsters_ re-written in an object-oriented style of programming. It's intended as a example of how one might separate functionality within a Corona mobile application.
 
-**This new version has been modernized for changes over past three years with the Corona SDK engine, DMC Corona Libraries, as well as my coding/organization style.** :)
+**This new 2.0 release has been modernized for changes over past three years with the Corona SDK engine, DMC Corona Libraries, as well as my coding/organization style.** :)
 
 The original Ghosts vs. Monsters was a physics-based game template designed for mobile devices. It was created by Jonathan Beebe and Biffy Beebe for Corona SDK (http://coronalabs.com).
 
