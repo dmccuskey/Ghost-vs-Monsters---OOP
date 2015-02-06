@@ -1,5 +1,5 @@
 --====================================================================--
--- scene/game/game_over_overlay.lua
+-- scene/game/gameover_overlay.lua
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
@@ -54,6 +54,12 @@ local LOCAL_DEBUG = false
 
 local GameOver = newClass( ComponentBase, {name="Game Over Overlay"} )
 
+--== Class Constants
+
+GameOver.WIN_GAME = 'win'
+GameOver.LOSE_GAME = 'lose'
+
+
 --== Event Constants
 
 GameOver.EVENT = 'game-over-event'
@@ -62,7 +68,7 @@ GameOver.FACEBOOK = 'facebook-selected'
 GameOver.MENU = 'menu-selected'
 GameOver.NEXT = 'next-selected'
 GameOver.OPEN_FEINT = 'open-feint-selected'
-GameOver.RESTART = 'restart-selected'
+GameOver.REPLAY = 'replay-selected'
 
 
 --======================================================--
@@ -87,7 +93,7 @@ function GameOver:__init__( params )
 	self._width = params.width
 	self._height = params.height
 
-	self._outcome = "" -- 'win'/'lose'
+	self._outcome = "" -- WIN_GAME/LOSE_GAME
 	self._bestscore = 2000
 	self._score = 2000
 
@@ -111,7 +117,7 @@ function GameOver:__init__( params )
 	self._img_lose = nil
 
 	self._btn_menu = nil
-	self._btn_restart = nil
+	self._btn_replay = nil
 	self._btn_next = nil
 
 end
@@ -235,10 +241,10 @@ function GameOver:__createView__()
 	self:insert( o.view )
 	self._btn_menu = o
 
-	-- restart Button
+	-- replay Button
 
 	o = Widgets.newPushButton{
-		id='restart-button',
+		id='replay-button',
 		view='image',
 		file='assets/buttons/restartbtn.png',
 		width=60, height=60,
@@ -249,7 +255,7 @@ function GameOver:__createView__()
 	o.x, o.y = 0, 186
 
 	self:insert( o.view )
-	self._btn_restart = o
+	self._btn_replay = o
 
 	-- next Button
 
@@ -279,9 +285,9 @@ function GameOver:__undoCreateView__()
 	o:removeSelf()
 	self._btn_next = nil
 
-	o = self._btn_restart
+	o = self._btn_replay
 	o:removeSelf()
-	self._btn_restart = nil
+	self._btn_replay = nil
 
 	o = self._btn_menu
 	o:removeSelf()
@@ -332,7 +338,7 @@ function GameOver:__initComplete__()
 	self._btn_facebook.onRelease = self:createCallback( self._buttonEvent_handler )
 	self._btn_menu.onRelease = self:createCallback( self._buttonEvent_handler )
 	self._btn_next.onRelease = self:createCallback( self._buttonEvent_handler )
-	self._btn_restart.onRelease = self:createCallback( self._buttonEvent_handler )
+	self._btn_replay.onRelease = self:createCallback( self._buttonEvent_handler )
 	self._btn_feint.onRelease = self:createCallback( self._buttonEvent_handler )
 
 	-- self:hide()
@@ -344,7 +350,7 @@ function GameOver:__undoInitComplete__()
 	self._btn_feint.onRelease = nil
 	self._btn_facebook.onRelease = nil
 	self._btn_menu.onRelease = nil
-	self._btn_restart.onRelease = nil
+	self._btn_replay.onRelease = nil
 	self._btn_next.onRelease = nil
 	--==--
 	self:superCall( '__undoCreateView__' )
@@ -370,7 +376,7 @@ function GameOver:show( params )
 
 	self:_updateView( params )
 
-	if params.outcome=='win' then
+	if params.outcome==GameOver.WIN_GAME then
 		self._sound_mgr:play( self._sound_mgr.YOU_WIN )
 	else
 		self._sound_mgr:play( self._sound_mgr.YOU_LOSE )
@@ -413,13 +419,13 @@ function GameOver:_updateWin( params )
 	o = self._btn_menu
 	o.x, o.y = -10, V_CENTER+20
 
-	-- restart button
+	-- replay button
 	tmp = self._btn_menu
-	o = self._btn_restart
+	o = self._btn_replay
 	o.x, o.y = tmp.x+tmp.width+PAD,tmp.y
 
 	-- next button
-	tmp = self._btn_restart
+	tmp = self._btn_replay
 	o = self._btn_next
 	o.x, o.y = tmp.x+tmp.width+PAD,tmp.y
 	o.isVisible = true
@@ -454,9 +460,9 @@ function GameOver:_updateLose()
 	o = self._btn_menu
 	o.x, o.y = 25, V_CENTER+20
 
-	-- restart button
+	-- replay button
 	tmp = self._btn_menu
-	o = self._btn_restart
+	o = self._btn_replay
 	o.x, o.y = tmp.x+tmp.width+PAD,tmp.y
 
 	-- next button
@@ -490,7 +496,7 @@ function GameOver:_updateView( params )
 	o=self._img_win
 	o.x, o.y = 0, V_CENTER-o.height/2
 
-	if params.outcome=='win' then
+	if params.outcome==GameOver.WIN_GAME then
 		self:_updateWin( params )
 	else
 		self:_updateLose( params )
@@ -512,9 +518,9 @@ function GameOver:_updateView( params )
 	o.alpha = 0
 	transition.to( o, { time=500, alpha=1 } )
 
-	-- restart button
+	-- replay button
 	tmp = self._btn_menu
-	o = self._btn_restart
+	o = self._btn_replay
 	o.alpha = 0
 	transition.to( o, { time=500, alpha=1 } )
 
@@ -584,15 +590,14 @@ function GameOver:_buttonEvent_handler( event )
 		self:dispatchEvent( self.MENU )
 
 	elseif id=='next-button' then
-		local d = self._level_mgr:getLevelData( 'level2' )
 		self:dispatchEvent( self.NEXT )
 
 	elseif id=='feint-button' then
 		self:_doOpenFeintRequest()
-		self:dispatchEvent( self.OPEN_FEINT, {level=d}, {merge=false} )
+		self:dispatchEvent( self.OPEN_FEINT )
 
-	elseif id=='restart-button' then
-		self:dispatchEvent( self.RESTART )
+	elseif id=='replay-button' then
+		self:dispatchEvent( self.REPLAY )
 
 	end
 end
