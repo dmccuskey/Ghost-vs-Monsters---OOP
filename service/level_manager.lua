@@ -25,6 +25,7 @@ local VERSION = "0.1.0"
 
 
 local Objects = require 'lib.dmc_corona.dmc_objects'
+-- local Utils = require 'lib.dmc_corona.dmc_utils'
 
 
 
@@ -126,8 +127,16 @@ function LevelMgr:getNextLevelData( currentLevelName )
 	-- print( "LevelMgr:getNextLevelData", currentLevelName )
 	assert( type(currentLevelName)=='string', "incorrect type for data level name" )
 	--==--
-	local nextLevelName = Level_Data[ currentLevelName ].info.nextLevel
-	return self:getLevelData( nextLevelName )
+	local levels = self._levels
+	local value = 0
+	for i,level in ipairs( self._levels ) do
+		-- print(i,level.info.name)
+		if level.info.name == currentLevelName then
+			value = i
+			break
+		end
+	end
+	return self:getLevelData( value+1 )
 end
 
 
@@ -176,6 +185,7 @@ function LevelMgr:_getLevelByIndex( idx )
 	-- print( "LevelMgr:_getLevelByIndex", idx )
 	assert( type(idx)=='number', 'incorrect type for idx' )
 	--==--
+	if idx > #self._levels then idx = 1 end
 	return self._levels[idx]
 end
 
