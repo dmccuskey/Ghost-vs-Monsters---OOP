@@ -1118,7 +1118,7 @@ function GameView:_resetGameView()
 
 	self._game_score = 0 -- setter
 
-	self._game_lives = 1 -- change to DEBUG, default 4
+	self._game_lives = 4 -- change to DEBUG app, default 4
 	self._enemy_count = 0
 
 	self._text_is_blinking = false
