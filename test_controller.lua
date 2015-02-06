@@ -401,23 +401,32 @@ local function test_gameScene()
 		}
 	}
 
-	composer.gotoScene( 'scene.game', scene_options )
-	o = composer.getScene( name )
-
-	-- local f = function( e )
-	-- 	print( "Game Scene Event" )
-
-	-- 	if e.type == o.SELECTED then
-	-- 		local data = e.data
-	-- 		local level = data.level
-	-- 		print( "level info:", level.info.name, level )
-	-- 	else
-	-- 		print( "unknown event" )
-	-- 	end
-	-- end
-	-- o:addEventListener( o.EVENT, f )
+	composer.gotoScene( scene_name, scene_options )
+	o = composer.getScene( scene_name )
 
 end
+
+
+--======================================================--
+-- Test: Menu Scene
+
+local function test_menuScene()
+	print( "test_menuScene" )
+
+	local scene_name = 'scene.menu'
+	local o
+
+	local scene_options = {
+		params = {
+			width=W, height=H
+		}
+	}
+
+	composer.gotoScene( scene_name, scene_options )
+	o = composer.getScene( scene_name )
+
+end
+
 
 
 
@@ -455,7 +464,8 @@ function TestController.runTests()
 
 	--== Scene Tests
 
-	test_gameScene()
+	-- test_gameScene()
+	test_menuScene()
 
 end
 
