@@ -57,12 +57,16 @@ local LoadOverlay = require 'component.load_overlay'
 --== Setup, Constants
 
 
+--== Globals ==--
+
+-- all global variables are prefixed with lower 'g'
+_G.gMegaphone = nil
 _G.gService = {
 	level_mgr=nil,
 	sound_mgr=nil,
 	open_feint=nil
 }
-_G.gMegaphone = nil
+
 
 local sformat = string.format
 
