@@ -1066,25 +1066,25 @@ function GameView:_createLifeIndicator()
 	-- img:setFillColor( 0, 0, 0, 255 )
 	-- dg:insert( img )
 
-	o = ObjectFactory.create( 'life-icon' )
+	o = ObjectFactory.create( ObjectFactory.LIFE_ICON )
 	o.x, o.y = X_BASE, Y_BASE
 	dg:insert( o )
 	tinsert( list, o )
 
 	tmp = o
-	o = ObjectFactory.create( "life-icon" )
+	o = ObjectFactory.create( ObjectFactory.LIFE_ICON )
 	o.x, o.y = tmp.x + X_OFFSET, Y_BASE
 	dg:insert( o )
 	tinsert( list, o )
 
 	tmp = o
-	o = ObjectFactory.create( "life-icon" )
+	o = ObjectFactory.create( ObjectFactory.LIFE_ICON )
 	o.x, o.y = tmp.x + X_OFFSET, Y_BASE
 	dg:insert( o )
 	tinsert( list, o )
 
 	tmp = o
-	o = ObjectFactory.create( "life-icon" )
+	o = ObjectFactory.create( ObjectFactory.LIFE_ICON )
 	o.x, o.y = tmp.x + X_OFFSET, Y_BASE
 	dg:insert( o )
 	tinsert( list, o )
