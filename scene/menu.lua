@@ -151,7 +151,10 @@ end
 function MenuScene:__initComplete__()
 	-- print( "MenuScene:__initComplete__" )
 	self:_createMenuView()
-	self:gotoState( self.STATE_LOADING )
+
+	-- you can turn on loading if menu requires it
+	-- self:gotoState( self.STATE_LOADING )
+	self:gotoState( self.STATE_NORMAL )
 end
 
 function MenuScene:__undoInitComplete__()
