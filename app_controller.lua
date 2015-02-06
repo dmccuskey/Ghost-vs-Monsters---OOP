@@ -74,7 +74,7 @@ local AppSingleton = nil -- singleton, created in static run()
 
 local oldTimerCancel = nil -- patched timer
 
-local LOCAL_DEBUG = true
+local LOCAL_DEBUG = false
 
 
 
@@ -250,6 +250,18 @@ end
 --== Private Methods
 
 
+function AppController:_getDefaultSceneParams( params )
+	-- print( "AppController:_getDefaultSceneParams: ", params )
+	params = params or {}
+	--==--
+	params.width=self._width
+	params.height=self._height
+
+	return params
+end
+
+
+
 -- _addSceneHandler()
 --
 function AppController:_addSceneHandler( scene )
@@ -264,17 +276,18 @@ function AppController:_removeSceneHandler( scene )
 	scene:removeEventListener( scene.EVENT, self._current_scene_f )
 end
 
-
 -- _gotoScene()
 --
 -- does actual Storyboard switching to new scenes
 -- does setup to receive event messages from each scene
 --
-function AppController:_gotoScene( name, options )
+function AppController:_gotoScene( name, params )
 	-- print( "AppController:_gotoScene: ", name )
-	options = options or {}
 	--==--
 	local o, f = self._current_scene, self._current_scene_f
+	local options = {
+		params = self:_getDefaultSceneParams( params )
+	}
 
 	if composer.getSceneName( 'current' ) == name then return end
 
@@ -405,7 +418,7 @@ function AppController:_currentScene_handler( event )
 
 	if event.type == cs.LEVEL_SELECTED then
 		assert( event.level, "AppController: level missing from Menu Scene" )
-		self:gotoState( AppController.STATE_GAME, { level=event.level }  )
+		self:gotoState( AppController.STATE_GAME, { level_data=event.level }  )
 
 	--== Events from Game Scene
 
@@ -511,15 +524,8 @@ function AppController:do_state_menu( params )
 
 	self:setState( AppController.STATE_MENU )
 
-	local scene_options = {
-		params = {
-			width=self._width, height=self._height,
-			-- top_margin = gAppConstants.STATUS_BAR_HEIGHT,
-			level_mgr = self.level_mgr,
-			sound_mgr = self.sound_mgr
-		}
-	}
-	self:_gotoScene( 'scene.menu', scene_options )
+	local params = {}
+	self:_gotoScene( 'scene.menu', params )
 
 end
 
@@ -542,15 +548,10 @@ function AppController:do_state_game( params )
 	--==--
 	self:setState( AppController.STATE_GAME )
 
-	local scene_options = {
-		params = {
-			width=self._width, height=self._height,
-			-- top_margin = gAppConstants.STATUS_BAR_HEIGHT,
-			sound_mgr = self.sound_mgr,
-			level_data=params.level
-		}
+	local params = {
+		level_data=params.level_data
 	}
-	self:_gotoScene( 'scene.game', scene_options )
+	self:_gotoScene( 'scene.game', params )
 
 end
 
