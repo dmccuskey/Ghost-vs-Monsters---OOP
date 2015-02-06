@@ -87,7 +87,7 @@ end
 
 
 --====================================================================--
---== Module Tests
+--== Component Object Tests
 --====================================================================--
 
 
@@ -157,6 +157,12 @@ local function test_monsterCharacter()
 end
 
 
+
+--====================================================================--
+--== Component View Tests
+--====================================================================--
+
+
 --======================================================--
 -- Test: Game Over Overlay
 
@@ -216,7 +222,7 @@ end
 
 
 --======================================================--
--- Test: Level Screen
+-- Test: Level Overlay
 
 local function test_levelOverlay()
 	print( "test_levelOverlay" )
@@ -247,9 +253,8 @@ local function test_levelOverlay()
 end
 
 
-
 --======================================================--
--- Test: Load Screen
+-- Test: Load Overlay
 
 local function test_loadOverlay()
 	print( "test_loadOverlay" )
@@ -284,7 +289,7 @@ end
 
 
 --======================================================--
--- Test: Pause Screen
+-- Test: Pause Overlay
 
 local function test_pauseOverlay()
 	print( "test_pauseOverlay" )
@@ -312,6 +317,12 @@ local function test_pauseOverlay()
 
 	destroyObjIn( o )
 end
+
+
+
+--====================================================================--
+--== Core App View Tests
+--====================================================================--
 
 
 --======================================================--
@@ -386,13 +397,20 @@ local function test_menuMainView()
 end
 
 
+
+--====================================================================--
+--== App Scene Tests
+--====================================================================--
+
+
 --======================================================--
--- Test: Menu Main View
+-- Test: Game Scene
 
 local function test_gameScene()
 	print( "test_gameScene" )
 
-	local o = composer.getScene( name )
+	local scene_name = 'scene.game'
+	local o
 
 	local scene_options = {
 		params = {
@@ -442,25 +460,25 @@ function TestController.runTests()
 	print( "TestController.runTests" )
 
 	--[[
-	uncomment test to run
+	uncomment the test to run
 	--]]
 
-	--== Game Objects
+	--== Component Objects
 
 	-- test_ghostCharacter()
 	-- test_monsterCharacter()
 
-
-	--== Component Tests
+	--== Component Views
 
 	-- test_gameOverOverlay()
 	-- test_levelOverlay()
 	-- test_loadOverlay()
 	-- test_pauseOverlay()
 
+	--== Core App Views
+
 	-- test_gameMainView()
 	-- test_menuMainView()
-
 
 	--== Scene Tests
 
