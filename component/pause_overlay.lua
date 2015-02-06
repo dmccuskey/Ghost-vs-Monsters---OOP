@@ -215,10 +215,10 @@ function PauseOverlay:__initComplete__()
 	local o
 
 	o = self._btn_pause
-	o.onRelease = self:createCallback( self.pauseButtonEvent_handler )
+	o.onRelease = self:createCallback( self._pauseButtonEvent_handler )
 
 	o = self._btn_menu
-	o.onRelease = self:createCallback( self.menuButtonEvent_handler )
+	o.onRelease = self:createCallback( self._menuButtonEvent_handler )
 
 	self.is_active = self._btn_pause.is_active
 	self:show()
@@ -282,8 +282,8 @@ end
 --== Event Handlers
 
 
-function PauseOverlay:pauseButtonEvent_handler( event )
-	-- print( "PauseOverlay:pauseButtonEvent_handler" )
+function PauseOverlay:_pauseButtonEvent_handler( event )
+	-- print( "PauseOverlay:_pauseButtonEvent_handler" )
 	local btn = event.target
 
 	self._sound_mgr:play( self._sound_mgr.TAP )
@@ -293,8 +293,8 @@ function PauseOverlay:pauseButtonEvent_handler( event )
 end
 
 
-function PauseOverlay:menuButtonEvent_handler( event )
-	-- print( "PauseOverlay:menuButtonEvent_handler" )
+function PauseOverlay:_menuButtonEvent_handler( event )
+	-- print( "PauseOverlay:_menuButtonEvent_handler" )
 	local btn = event.target
 
 	self._sound_mgr:play( self._sound_mgr.TAP )
