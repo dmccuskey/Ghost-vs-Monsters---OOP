@@ -275,7 +275,7 @@ function MenuScene:_menuViewEvent_handler( event )
 		local result = event.data
 		self:gotoState( self.STATE_NORMAL, {level=result.level} )
 	else
-		print( "MenuScene:_menuViewEvent_handler unknown event", event.type )
+		print( "[WARNING] MenuScene:_menuViewEvent_handler", event.type )
 	end
 
 end
@@ -289,7 +289,7 @@ function MenuScene:_loadViewEvent_handler( event )
 	if event.type == target.COMPLETE then
 		self:gotoState( self.STATE_NORMAL )
 	else
-		-- print( "MenuScene:_loadViewEvent_handler unknown event", event.type )
+		print( "[WARNING] MenuScene:_loadViewEvent_handler", event.type )
 	end
 
 end
@@ -309,7 +309,7 @@ function MenuScene:state_create( next_state, params )
 	elseif next_state == MenuScene.STATE_NORMAL then
 		self:do_state_normal( params )
 	else
-		print( "WARNING::state_create : " .. tostring( next_state ) )
+		print( "[WARNING] MenuScene:state_create", tostring( next_state ) )
 	end
 end
 
@@ -329,7 +329,7 @@ function MenuScene:state_loading( next_state, params )
 	if next_state == MenuScene.STATE_NORMAL then
 		self:do_state_normal( params )
 	else
-		print( "WARNING::state_loading : " .. tostring( next_state ) )
+		print( "[WARNING] MenuScene:state_loading", tostring( next_state ) )
 	end
 end
 
@@ -360,7 +360,7 @@ function MenuScene:state_normal( next_state, params )
 	elseif next_state == MenuScene.STATE_COMPLETE then
 		self:do_state_complete( params )
 	else
-		print( "WARNING::state_normal : " .. tostring( next_state ) )
+		print( "[WARNING] MenuScene:state_normal", tostring( next_state ) )
 	end
 end
 
@@ -379,7 +379,7 @@ end
 function MenuScene:state_complete( next_state, params )
 	-- print( "MenuScene:state_complete: >> ", next_state )
 
-	print( "WARNING::MenuScene:state_complete : " .. tostring( next_state ) )
+	print( "[WARNING] MenuScene:state_complete", tostring( next_state ) )
 end
 
 -- END: STATE MACHINE
@@ -412,24 +412,21 @@ function scene:create( event )
 end
 
 function scene:show( event )
-	print( "Menu Scene:show" )
-	Utils.print( event )
+	-- print( "Menu Scene:show" )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
 function scene:hide( event )
-	print( "Menu Scene:hide" )
-	Utils.print( event )
+	-- print( "Menu Scene:hide" )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
 function scene:destroy( event )
-	print( "Menu Scene:destroy" )
-	Utils.print( event )
+	-- print( "Menu Scene:destroy" )
 	MenuScene:__undoInitComplete__()
 	MenuScene:__undoCreateView__()
 	MenuScene:__undoInit__()

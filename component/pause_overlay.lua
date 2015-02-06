@@ -209,6 +209,7 @@ end
 -- __initComplete__()
 --
 function PauseOverlay:__initComplete__()
+	-- print( "PauseOverlay:__initComplete__" )
 	self:superCall( '__initComplete__' )
 	--==--
 	local o
@@ -220,7 +221,6 @@ function PauseOverlay:__initComplete__()
 	o.onRelease = self:createCallback( self.menuButtonEvent_handler )
 
 	self.is_active = self._btn_pause.is_active
-
 	self:show()
 end
 -- __undoInitComplete__()

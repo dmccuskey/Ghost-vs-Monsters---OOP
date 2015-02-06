@@ -110,6 +110,7 @@ end
 -- get level data, value can be integer or name
 --
 function LevelMgr:getLevelData( value )
+	-- print( "LevelMgr:getLevelData", value )
 	local lvl_type = type(value)
 	assert( lvl_type=='number' or lvl_type=='string', "incorrect type for data level name" )
 	--==--
@@ -122,6 +123,7 @@ end
 
 
 function LevelMgr:getNextLevelData( currentLevelName )
+	-- print( "LevelMgr:getNextLevelData", currentLevelName )
 	assert( type(currentLevelName)=='string', "incorrect type for data level name" )
 	--==--
 	local nextLevelName = Level_Data[ currentLevelName ].info.nextLevel

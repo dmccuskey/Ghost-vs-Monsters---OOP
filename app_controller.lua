@@ -167,9 +167,9 @@ end
 function AppController:__createView__()
 	self:superCall( '__createView__' )
 	--==--
+
 	-- setting the Composer layer to ours
 	self:insert( composer.stage )
-
 end
 -- __undoCreateView__()
 --
@@ -303,6 +303,8 @@ function AppController:_gotoScene( name, options )
 end
 
 
+
+
 function AppController:_loadOpenFeint( options )
 	OpenFeint = require 'openfeint'
 	local params = {
@@ -319,11 +321,15 @@ end
 
 
 --[[
+
+GLOBAL COMMUNICATION
+
 there are at least two ways to communicate with the Game View, either
 * by direct communication, we get the Scene and ask for the Game View
 * via global communicator, we send messages via Megaphone
 
 both are setup so you can see the difference.
+
 --]]
 
 
@@ -378,7 +384,7 @@ end
 
 
 function AppController:_systemEvent_handler( event )
-	print( "AppController:_systemEvent_handler", event.type )
+	-- print( "AppController:_systemEvent_handler", event.type )
 	local e_type = event.type
 
 	if e_type == 'applicationStart' then
@@ -395,12 +401,15 @@ function AppController:_systemEvent_handler( event )
 			-- prevents iOS 4+ multi-tasking crashes
 			os.exit()
 		end
+
+	else
+		print( "[WARNING] AppController:_systemEvent_handler", tostring( event.type ) )
 	end
 end
 
 
 function AppController:_currentScene_handler( event )
-	print( "AppController:_currentScene_handler", event.type )
+	-- print( "AppController:_currentScene_handler", event.type )
 	--==--
 	local cs = self._current_scene
 
@@ -416,7 +425,7 @@ function AppController:_currentScene_handler( event )
 		self:gotoState( AppController.STATE_MENU )
 
 	else
-		print( "[WARNING] AppController:_currentScene_handler : ", tostring( event.type ) )
+		print( "[WARNING] AppController:_currentScene_handler", tostring( event.type ) )
 	end
 end
 
@@ -432,7 +441,7 @@ function AppController:state_create( next_state, params )
 	if next_state == AppController.STATE_INIT then
 		self:do_state_initialize( params )
 	else
-		print( "[WARNING] AppController:state_create : ", tostring( next_state ) )
+		print( "[WARNING] AppController:state_create", tostring( next_state ) )
 	end
 end
 
@@ -502,7 +511,7 @@ function AppController:state_initialize( next_state, params )
 	if next_state == AppController.STATE_MENU then
 		self:do_state_menu( params )
 	else
-		print( "[WARNING] AppController:state_initialize : " .. tostring( next_state ) )
+		print( "[WARNING] AppController:state_initialize", tostring( next_state ) )
 	end
 end
 
@@ -527,12 +536,12 @@ function AppController:do_state_menu( params )
 end
 
 function AppController:state_menu( next_state, params )
-	print( "AppController:state_menu: >> ", next_state, params )
+	-- print( "AppController:state_menu: >> ", next_state, params )
 
 	if next_state == AppController.STATE_GAME then
 		self:do_state_game( params )
 	else
-		print( "[WARNING] AppController:state_menu : " .. tostring( next_state ) )
+		print( "[WARNING] AppController:state_menu", tostring( next_state ) )
 	end
 end
 
@@ -540,7 +549,7 @@ end
 --== State Game ==--
 
 function AppController:do_state_game( params )
-	print( "AppController:do_state_game", params )
+	-- print( "AppController:do_state_game", params )
 	params = params or {}
 	--==--
 	self:setState( AppController.STATE_GAME )
@@ -558,12 +567,12 @@ function AppController:do_state_game( params )
 end
 
 function AppController:state_game( next_state, params )
-	print( "AppController:state_game: >> ", next_state, params )
+	-- print( "AppController:state_game: >> ", next_state, params )
 
 	if next_state == AppController.STATE_MENU then
 		self:do_state_menu( params )
 	else
-		print( "[WARNING] AppController:state_game : " .. tostring( next_state ) )
+		print( "[WARNING] AppController:state_game", tostring( next_state ) )
 	end
 end
 

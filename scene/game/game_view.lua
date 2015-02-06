@@ -457,7 +457,7 @@ function GameView:__initComplete__()
 
 end
 function GameView:__undoInitComplete__()
-	--print( "GameView:__undoInitComplete__" )
+	-- print( "GameView:__undoInitComplete__" )
 	local o, f
 
 	self:_destroyAllLevelObjects()
@@ -509,7 +509,7 @@ function GameView:pauseGamePlay()
 	self._game_is_active = false -- setter
 end
 function GameView:resumeGamePlay()
-	print( "GameView:resumeGamePlay" )
+	-- print( "GameView:resumeGamePlay" )
 	self._game_is_active = true -- setter
 end
 
@@ -598,6 +598,7 @@ function GameView.__getters:_game_is_active()
 	return self.__game_is_active
 end
 function GameView.__setters:_game_is_active( value )
+	-- print( "GameView.__setters:_game_is_active", value )
 	assert( type(value)=='boolean', "wrong type for game is active")
 	--==--
 	if self.__game_is_active == value then return end
@@ -1156,7 +1157,7 @@ end
 
 
 function GameView:_pauseOverlayEvent_handler( event )
-	-- print( "GameView:_pauseOverlayEvent_handler" )
+	-- print( "GameView:_pauseOverlayEvent_handler", event.type )
 	local target = event.target
 
 	if event.type == target.ACTIVE then

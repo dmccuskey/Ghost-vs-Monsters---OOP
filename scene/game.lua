@@ -357,7 +357,7 @@ function GameScene:_gameOverEvent_handler( event )
 	if event.type == target.COMPLETE then
 		self:gotoState( self.STATE_PLAY )
 	else
-		print( "[WARNING] GameScene:_loadViewEvent_handler", event.type )
+		-- print( "[WARNING] GameScene:_gameOverEvent_handler", event.type )
 	end
 
 end
@@ -426,7 +426,7 @@ function GameScene:state_play( next_state, params )
 	elseif next_state == GameScene.STATE_COMPLETE then
 		self:do_state_complete( params )
 	else
-		print( "[WARNING] GameScene::state_play", tostring( next_state ) )
+		print( "[WARNING] GameScene:state_game_over", tostring( next_state ) )
 	end
 end
 
@@ -487,8 +487,8 @@ function scene:create( event )
 end
 
 function scene:show( event )
-	print( "Game Scene:show" )
-	Utils.print( event )
+	-- print( "Game Scene:show" )
+	local params = event.params
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 		-- event information:
@@ -498,16 +498,14 @@ function scene:show( event )
 end
 
 function scene:hide( event )
-	print( "Game Scene:hide" )
-	-- Utils.print( event )
+	-- print( "Game Scene:hide" )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
 function scene:destroy( event )
-	print( "Game Scene:destroy" )
-	Utils.print( event )
+	-- print( "Game Scene:destroy" )
 	GameScene:__undoInitComplete__()
 	GameScene:__undoCreateView__()
 	GameScene:__undoInit__()
