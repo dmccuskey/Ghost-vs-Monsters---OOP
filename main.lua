@@ -44,7 +44,7 @@ open_feint_params = nil {
 }
 --]]
 
-_G.gMODE = 'TEST'  -- 'TEST'/'RUN'
+_G.gMODE = 'RUN'  -- 'TEST'/'RUN'
 
 
 
