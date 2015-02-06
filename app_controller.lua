@@ -347,15 +347,14 @@ function AppController:_pauseGamePlay( options )
 		local game_scene, game_view
 		game_scene = composer.getScene( 'scene.game' )
 		-- simple output to show details
-		if LOCAL_DEBUG and not game_scene then
+		if game_scene then
+			game_view = game_scene:getGameView()
+			if game_view then game_view:pauseGamePlay() end
+		elseif LOCAL_DEBUG then
 			print( "GameView not loaded" )
-			return
 		end
-		game_view = game_scene:getGameView()
-		if game_view then game_view:pauseGamePlay() end
 
 	end
-
 
 end
 
@@ -370,12 +369,12 @@ function AppController:_resumeGamePlay( options )
 		local game_scene, game_view
 		game_scene = composer.getScene( 'scene.game' )
 		-- simple output to show details
-		if LOCAL_DEBUG and not game_scene then
+		if game_scene then
+			game_view = game_scene:getGameView()
+			if game_view then game_view:resumeGamePlay() end
+		elseif LOCAL_DEBUG then
 			print( "GameView not loaded" )
-			return
 		end
-		game_view = game_scene:getGameView()
-		if game_view then game_view:resumeGamePlay() end
 
 	end
 
