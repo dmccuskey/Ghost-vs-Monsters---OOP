@@ -307,7 +307,6 @@ end
 
 
 
-
 function AppController:_loadOpenFeint( options )
 	OpenFeint = require 'openfeint'
 	local params = {
@@ -382,8 +381,6 @@ end
 
 
 
-
-
 --====================================================================--
 --== Event Handlers
 
@@ -451,7 +448,7 @@ function AppController:state_create( next_state, params )
 end
 
 
---== State Menu ==--
+--== State Initialize ==--
 
 function AppController:do_state_initialize( params )
 	-- print( "AppController:do_state_initialize", params )
@@ -507,9 +504,6 @@ function AppController:do_state_initialize( params )
 
 end
 
--- state_initialize()
--- handles transition effects from app initialization
---
 function AppController:state_initialize( next_state, params )
 	-- print( "AppController:state_initialize: >> ", next_state, params )
 

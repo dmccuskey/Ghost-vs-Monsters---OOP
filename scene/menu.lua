@@ -408,6 +408,7 @@ scene.LEVEL_SELECTED = 'level-selected'
 
 function scene:create( event )
 	-- print( "Menu Scene:create" )
+	--== Emulate DMC Objects Setup ==--
 	MenuScene.view = self.view
 	MenuScene:__init__( event.params )
 	MenuScene:__createView__()
@@ -430,6 +431,7 @@ end
 
 function scene:destroy( event )
 	-- print( "Menu Scene:destroy" )
+	--== Emulate DMC Objects Teardown ==--
 	MenuScene:__undoInitComplete__()
 	MenuScene:__undoCreateView__()
 	MenuScene:__undoInit__()

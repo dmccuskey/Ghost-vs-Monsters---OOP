@@ -50,7 +50,6 @@ local scene = nil -- composer scene
 --====================================================================--
 
 
-
 local GameScene = {}
 
 StatesMixModule.patch( GameScene )
@@ -538,6 +537,7 @@ scene.GAME_COMPLETE = 'game-complete'
 
 function scene:create( event )
 	-- print( "Game Scene:create" )
+	--== Emulate DMC Objects Setup ==--
 	GameScene.view = self.view
 	GameScene:__init__( event.params )
 	GameScene:__createView__()
@@ -564,6 +564,7 @@ end
 
 function scene:destroy( event )
 	-- print( "Game Scene:destroy" )
+	--== Emulate DMC Objects Teardown ==--
 	GameScene:__undoInitComplete__()
 	GameScene:__undoCreateView__()
 	GameScene:__undoInit__()

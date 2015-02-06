@@ -1,13 +1,27 @@
+--====================================================================--
+-- test_controller.lua
+--
+-- Sample code is MIT licensed, the same license which covers Lua itself
+-- http://en.wikipedia.org/wiki/MIT_License
+-- Copyright (C) 2015 David McCuskey. All Rights Reserved.
+--====================================================================--
+
+
+
+--====================================================================--
+--== Ghost vs Monsters : Test Controller
+--====================================================================--
+
+
+-- Semantic Versioning Specification: http://semver.org/
+
+local VERSION = "0.1.0"
 
 
 
 --====================================================================--
 --== Imports
 
-
--- this require primes dmc_corona library for use
---
-require 'dmc_corona_boot'
 
 local composer = require 'composer'
 
@@ -472,7 +486,7 @@ function TestController.runTests()
 
 	-- test_gameOverOverlay()
 	-- test_levelOverlay()
-	-- test_loadOverlay()
+	test_loadOverlay()
 	-- test_pauseOverlay()
 
 	--== Core App Views
@@ -483,7 +497,7 @@ function TestController.runTests()
 	--== Scene Tests
 
 	-- test_gameScene()
-	test_menuScene()
+	-- test_menuScene()
 
 end
 

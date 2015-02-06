@@ -34,7 +34,7 @@ local Objects = require 'lib.dmc_corona.dmc_objects'
 local newClass = Objects.newClass
 local ComponentBase = Objects.ComponentBase
 
-local LOCAL_DEBUG = true
+local LOCAL_DEBUG = false
 
 
 
@@ -271,6 +271,8 @@ end
 
 
 -- none
+
+
 
 
 return LoadOverlay

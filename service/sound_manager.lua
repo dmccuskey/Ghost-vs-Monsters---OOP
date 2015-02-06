@@ -39,7 +39,7 @@ local sformat = string.format
 local tinsert = table.insert
 local tremove = table.remove
 
-local LOCAL_DEBUG = true
+local LOCAL_DEBUG = false
 
 
 

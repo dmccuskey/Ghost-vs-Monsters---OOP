@@ -59,7 +59,6 @@ local GameOver = newClass( ComponentBase, {name="Game Over Overlay"} )
 GameOver.WIN_GAME = 'win'
 GameOver.LOSE_GAME = 'lose'
 
-
 --== Event Constants
 
 GameOver.EVENT = 'game-over-event'
@@ -365,6 +364,9 @@ end
 --== Public Methods
 
 
+-- show()
+-- override dmc-objects,
+--
 function GameOver:show( params )
 	-- print( "GameOver:show", params )
 	params = params or {}
@@ -384,9 +386,11 @@ function GameOver:show( params )
 
 end
 
+-- use one in dmc-objects
 -- function GameOver:hide()
 -- 	print( "GameOver:hide" )
 -- end
+
 
 
 --====================================================================--
