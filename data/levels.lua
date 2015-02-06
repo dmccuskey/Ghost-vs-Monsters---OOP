@@ -13,8 +13,6 @@ local game_data = {
 		info = {
 			icon = "level1btn",
 			name = "level1",
-			restartLevel = "level1",
-			nextLevel = "level2",
 			characterName = "ghost",
 			enemyName = "monster",
 		},
@@ -62,8 +60,6 @@ local game_data = {
 		info = {
 			icon = "level2btn",
 			name = "level2",
-			restartLevel = "level2",
-			nextLevel = "level1",
 			characterName = "ghost",
 			enemyName = "monster",
 		},

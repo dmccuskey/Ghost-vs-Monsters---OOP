@@ -31,8 +31,8 @@ local Utils = require 'lib.dmc_corona.dmc_utils'
 
 --== Components
 
+local GameOverOverlay = require 'scene.game.gameover_overlay'
 local GameView = require 'scene.game.game_view'
--- local GameOverOverlay = require 'scene.game.gameover_overlay'
 local LoadOverlay = require 'component.load_overlay'
 
 
@@ -141,11 +141,13 @@ end
 function GameScene:__initComplete__()
 	-- print( "GameScene:__initComplete__" )
 	self:_createGameView()
-	self:gotoState( self.STATE_LOADING )
+	self:_createGameOverOverlay()
+	-- self:gotoState( self.STATE_LOADING )
 end
 
 function GameScene:__undoInitComplete__()
 	-- print( "GameScene:__undoInitComplete__" )
+	self:_destroyGameOverOverlay()
 	self:_destroyGameView()
 end
 
@@ -218,7 +220,7 @@ end
 
 function GameScene:_createGameOverOverlay()
 	-- print( "GameScene:_createGameOverOverlay" )
-	if self._view_gameover then self:_destroyLoadOverlay() end
+	if self._view_gameover then self:_destroyGameOverOverlay() end
 
 	local W, H = self._width , self._height
 	local H_CENTER, V_CENTER = W*0.5, H*0.5
@@ -226,24 +228,19 @@ function GameScene:_createGameOverOverlay()
 	local dg = self._dg_overlay
 	local o, f
 
-	-- o = LoadOverlay:new{
-	-- width=W, height=H
-	-- }
-	-- o.x, o.y = H_CENTER, 0
+	o = GameOverOverlay:new{
+		width=W, height=H
+	}
+	o.x, o.y = H_CENTER, 0
 
-	-- dg:insert( o.view )
-	-- self._view_gameover = o
+	dg:insert( o.view )
+	self._view_gameover = o
 
-	-- f = Utils.createObjectCallback( self, self._loadViewEvent_handler )
-	-- o:addEventListener( o.EVENT, f )
+	f = Utils.createObjectCallback( self, self._gameOverEvent_handler )
+	o:addEventListener( o.EVENT, f )
+	self._view_gameover_f = f
 
-	-- self._view_gameover_f = f
-
-	-- -- testing
-	-- timer.performWithDelay( 500, function() o.percent_complete=25 end )
-	-- timer.performWithDelay( 1000, function() o.percent_complete=50 end )
-	-- timer.performWithDelay( 1500, function() o.percent_complete=75 end )
-	-- timer.performWithDelay( 2000, function() o.percent_complete=100 end )
+	o:hide()
 end
 
 function GameScene:_destroyGameOverOverlay()
@@ -332,8 +329,20 @@ function GameScene:_gameViewEvent_handler( event )
 		-- pass
 
 	elseif event.type == target.GAME_OVER_EVENT then
-		-- create game over display
-		self:gotoState( self.STATE_COMPLETE )
+		-- event data:
+		-- event.outcome, event.score, event.best_score
+		local outcome
+		if event.outcome == target.WIN_GAME then
+			outcome = self._view_gameover.WIN_GAME
+		else
+			outcome = self._view_gameover.LOSE_GAME
+		end
+		local p = {
+			outcome=outcome,
+			score=event.score,
+			bestscore=event.best_score
+		}
+		self:gotoState( self.STATE_GAME_OVER, p )
 
 	elseif event.type == target.GAME_EXIT_EVENT then
 		self:gotoState( self.STATE_COMPLETE )
@@ -350,12 +359,29 @@ end
 function GameScene:_gameOverEvent_handler( event )
 	-- print( "GameScene:_gameOverEvent_handler: ", event.type )
 	local target = event.target
-	-- menu button, goto menu
-	-- restart button, start
-	-- next-level buton, get new level, start loading game
-	-- start loading, show loading screen, clear, show
-	if event.type == target.COMPLETE then
+
+	if event.type == target.FACEBOOK then
+		-- pass, handled in overlay
+
+	elseif event.type == target.MENU then
+		self:gotoState( self.STATE_COMPLETE )
+
+	elseif event.type == target.NEXT then
+		-- play next level
+		self._view_gameover:hide()
+
+		local curr_level = self._level_data
+		local new_level = self._level_mgr:getNextLevelData( curr_level.info.name )
+		self:gotoState( self.STATE_LOADING, {level_data=new_level} )
+
+	elseif event.type == target.OPEN_FEINT then
+		-- pass, handled in overlay
+
+	elseif event.type == target.REPLAY then
+		self._view_gameover:hide()
+		-- load same level
 		self:gotoState( self.STATE_PLAY )
+
 	else
 		-- print( "[WARNING] GameScene:_gameOverEvent_handler", event.type )
 	end
@@ -371,7 +397,6 @@ end
 
 function GameScene:state_create( next_state, params )
 	-- print( "GameScene:state_create: >> ", next_state )
-
 	if next_state == GameScene.STATE_LOADING then
 		self:do_state_loading( params )
 	elseif next_state == GameScene.STATE_PLAY then
@@ -390,10 +415,13 @@ function GameScene:do_state_loading( params )
 	--==--
 	self:setState( GameScene.STATE_LOADING )
 
-	if params.level then
-		self._level_data = params.level
-	end
 	self:_createLoadOverlay()
+	self:_createGameView()
+
+	if params.level_data then
+		self._level_data = params.level_data
+		self._view_game.level_data = self._level_data
+	end
 end
 
 function GameScene:state_loading( next_state, params )
@@ -423,6 +451,36 @@ function GameScene:state_play( next_state, params )
 	-- print( "GameScene:state_play: >> ", next_state )
 	if next_state == GameScene.STATE_PLAY then
 		self:do_state_play( params )
+	elseif next_state == GameScene.STATE_GAME_OVER then
+		self:do_state_game_over( params )
+	elseif next_state == GameScene.STATE_COMPLETE then
+		self:do_state_complete( params )
+	else
+		print( "[WARNING] GameScene:state_play", tostring( next_state ) )
+	end
+end
+
+
+--== State Game Over ==--
+
+function GameScene:do_state_game_over( params )
+	-- print( "GameScene:do_state_game_over" )
+	params = params or {}
+	--==--
+	assert( params.outcome )
+	assert( params.score )
+	assert( params.bestscore )
+
+	self:setState( GameScene.STATE_GAME_OVER )
+	self._view_gameover:show( params )
+end
+
+function GameScene:state_game_over( next_state, params )
+	-- print( "GameScene:state_game_over: >> ", next_state, params )
+	if next_state == GameScene.STATE_LOADING then
+		self:do_state_loading( params )
+	elseif next_state == GameScene.STATE_PLAY then
+		self:do_state_play( params )
 	elseif next_state == GameScene.STATE_COMPLETE then
 		self:do_state_complete( params )
 	else
@@ -439,13 +497,13 @@ function GameScene:do_state_complete( params )
 	--==--
 	self:setState( GameScene.STATE_COMPLETE )
 
-	self:_destroyLoadOverlay()
-	self:_destroyGameOverOverlay()
+	self._view_gameover:hide()
 
-	scene:dispatchEvent{
-		name=scene.EVENT,
-		type=scene.GAME_COMPLETE
-	}
+	self:_destroyLoadOverlay()
+	self:_destroyGameView()
+
+	scene:gameIsComplete()
+
 end
 
 function GameScene:state_complete( next_state, params )
@@ -493,7 +551,7 @@ function scene:show( event )
 	elseif event.phase == 'did' then
 		-- event information:
 		-- event.width, event.height, event.level_data
-		GameScene:gotoState( GameScene.STATE_LOADING, {level=event.level_data} )
+		GameScene:gotoState( GameScene.STATE_LOADING, {level_data=params.level_data} )
 	end
 end
 
@@ -531,6 +589,19 @@ scene:addEventListener( 'destroy', scene )
 --
 function scene:getGameView()
 	return GameScene:getGameView()
+end
+
+
+-- gameIsComplete()
+--
+-- let App Controller know we're done
+--
+function scene:gameIsComplete()
+	-- print( "Game Scene:gameIsComplete" )
+	scene:dispatchEvent{
+		name=scene.EVENT,
+		type=scene.GAME_COMPLETE
+	}
 end
 
 

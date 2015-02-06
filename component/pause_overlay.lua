@@ -74,7 +74,7 @@ function PauseOverlay:__init__( params )
 
 	--== Properties
 
-	self._is_paused = false
+	self._is_paused = nil -- boolean, nil to allow setter
 
 	--== Objects
 
@@ -246,9 +246,12 @@ function PauseOverlay.__getters:is_active()
 	return self._is_paused
 end
 function PauseOverlay.__setters:is_active( value )
+	-- print( "PauseOverlay.__setters:is_active", value )
 	assert( type(value)=='boolean', "incorrect type for is_active" )
 	--==--
+	if self._is_paused == value then return end
 	self._is_paused = value
+	-- self._btn_pause.is_active = value
 	self._group.isVisible = value
 end
 
@@ -258,6 +261,7 @@ function PauseOverlay:menuConfirmation( event )
 	if 'clicked' == event.action then
 		local i = event.index
 		if i == 1 then
+			self._btn_pause:press()
 			-- Player clicked Yes, go to main menu
 			self:dispatchEvent( self.MENU )
 		end

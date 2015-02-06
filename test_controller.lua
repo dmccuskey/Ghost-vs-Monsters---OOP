@@ -9,6 +9,8 @@
 --
 require 'dmc_corona_boot'
 
+local composer = require 'composer'
+
 local Utils = require 'lib.dmc_corona.dmc_utils'
 
 -- AppController gives us access to main controller and its components
@@ -161,7 +163,7 @@ end
 local function test_gameOverOverlay()
 	print( "test_gameOverOverlay" )
 
-	local GameOverOverlay = require 'scene.game.game_over_overlay'
+	local GameOverOverlay = require 'scene.game.gameover_overlay'
 	assert( type(GameOverOverlay)=='table' )
 
 	local o = GameOverOverlay:new{
@@ -320,14 +322,12 @@ test_gameMainView = function( create_only )
 	if create_only==nil then create_only = false end
 	--==--
 
-	local LEVEL_MGR = ACI.level_mgr
-
 	local GameView = require 'scene.game.game_view'
 	assert( type(GameView)=='table', "ERROR: loading Menu View" )
 
 	local o = GameView:new{
 		width=W, height=H,
-		level_data=LEVEL_MGR:getLevelData(1)
+		level_data=gService.level_mgr:getLevelData(1)
 	}
 
 	if create_only then return o end
@@ -386,6 +386,40 @@ local function test_menuMainView()
 end
 
 
+--======================================================--
+-- Test: Menu Main View
+
+local function test_gameScene()
+	print( "test_gameScene" )
+
+	local o = composer.getScene( name )
+
+	local scene_options = {
+		params = {
+			width=W, height=H,
+			level_data=gService.level_mgr:getLevelData(1)
+		}
+	}
+
+	composer.gotoScene( 'scene.game', scene_options )
+	o = composer.getScene( name )
+
+	-- local f = function( e )
+	-- 	print( "Game Scene Event" )
+
+	-- 	if e.type == o.SELECTED then
+	-- 		local data = e.data
+	-- 		local level = data.level
+	-- 		print( "level info:", level.info.name, level )
+	-- 	else
+	-- 		print( "unknown event" )
+	-- 	end
+	-- end
+	-- o:addEventListener( o.EVENT, f )
+
+end
+
+
 
 --====================================================================--
 --== Test Controller Setup
@@ -410,7 +444,7 @@ function TestController.runTests()
 
 	--== Component Tests
 
-	test_gameOverOverlay()
+	-- test_gameOverOverlay()
 	-- test_levelOverlay()
 	-- test_loadOverlay()
 	-- test_pauseOverlay()
@@ -421,7 +455,7 @@ function TestController.runTests()
 
 	--== Scene Tests
 
-	-- test_menuScene()
+	test_gameScene()
 
 end
 

@@ -195,6 +195,7 @@ function GameView:__init__( params )
 
 	self._level_data = params.level_data
 	self.__game_is_active = false
+	self._is_physics_active = false
 
 	self._tracking_timer = nil
 
@@ -500,6 +501,14 @@ end
 --== Public Methods
 
 
+function GameView.__setters:level_data( data )
+	-- print( "GameView.__setters:level_data", data.info.name )
+	assert( data, "missing level data" )
+	--==--
+	self._level_data = data
+end
+
+
 function GameView:startGamePlay()
 	-- print( "GameView:startGamePlay" )
 	self:gotoState( GameView.STATE_INIT )
@@ -525,7 +534,7 @@ end
 -- _best_score
 --
 function GameView.__getters:_best_score()
-	local bestScoreFilename = self._level_data.info.restartLevel .. ".data"
+	local bestScoreFilename = self._level_data.info.name .. ".data"
 	if self.__best_score == -1 then
 		self.__best_score = tonumber( loadValue( bestScoreFilename ) )
 	end
@@ -536,7 +545,7 @@ function GameView.__setters:_best_score( value )
 	--==--
 	if value < self.__best_score then return end
 
-	local bestScoreFilename = self._level_data.info.restartLevel .. ".data"
+	local bestScoreFilename = self._level_data.info.name .. ".data"
 
 	-- clean up value
 	if value < 0 then value = 0 end
@@ -578,14 +587,19 @@ function GameView.__getters:_game_lives()
 	return self.__game_lives
 end
 function GameView.__setters:_game_lives( value )
-
+	assert( type(value)=='number', "wrong type for game lives" )
+	--==--
 	-- clean up value
 	if value < 0 then value = 0 end
+	if value > 4 then value = 4 end
+
 	self.__game_lives = value
 
 	-- update icons
 	for i, item in ipairs( self._life_icons ) do
-		if i > self.__game_lives then
+		if i <= value then
+			item.alpha = 1.0
+		else
 			item.alpha = 0.4
 		end
 	end
@@ -606,7 +620,7 @@ function GameView.__setters:_game_is_active( value )
 	self.__game_is_active = value
 
 	if value == true then
-		self:_startPhysics()
+		self:_startPhysics( true )
 	else
 		self:_pausePhysics()
 	end
@@ -619,7 +633,7 @@ end
 function GameView.__setters:_is_tracking_character( value )
 	-- print("GameView:_is_tracking_character ", value )
 	assert( type(value)=='boolean' )
-
+	--==--
 	if value then
 		self:_startTrackingTimer()
 	else
@@ -668,7 +682,6 @@ end
 
 
 
-
 --== Methods ==--
 
 
@@ -702,7 +715,7 @@ function GameView:_addGameObject( item, group, is_physics )
 	group:insert( d )
 
 	-- add object to the physics engine
-	if is_physics then
+	if is_physics and physics.addBody then
 		physics.addBody( d, o.physicsType, o.physicsProperties )
 	end
 
@@ -838,6 +851,12 @@ end
 -- _destroyAllLevelObjects()
 --
 function GameView:_destroyAllLevelObjects()
+
+	if not self._is_physics_active then
+		-- need to turn physics on for removal/addition
+		self._game_is_active = true
+	end
+
 	self:_destroyPhysicsForegroundItems()
 	self:_destroyPhysicsGameItems()
 	self:_destroyPhysicsBackgroundItems()
@@ -969,16 +988,23 @@ end
 
 function GameView:_startPhysics( param )
 	-- print( "GameView:_startPhysics" )
+	self._is_physics_active = true
 	physics.start( param )
+
+	-- set to "normal" "debug" or "hybrid" to see collision boundaries
+	physics.setDrawMode( 'normal' )
+	physics.setGravity( 0, 11 )	--> 0, 9.8 = Earth-like gravity
 end
 
 function GameView:_pausePhysics()
 	--print( "GameView:_pausePhysics" )
+	self._is_physics_active = false
 	physics.pause()
 end
 
 function GameView:_stopPhysics()
 	-- print( "GameView:_stopPhysics" )
+	self._is_physics_active = false
 	physics.stop()
 end
 
@@ -1083,6 +1109,26 @@ end
 
 
 
+function GameView:_resetGameView()
+	-- print( "GameView:_resetGameView" )
+
+	self._dg_game.x = -480
+	self._screen_position = GameView.RIGHT_POS
+	self._is_panning = false
+
+	self._game_score = 0 -- setter
+
+	self._game_lives = 1 -- change to DEBUG, default 4
+	self._enemy_count = 0
+
+	self._text_is_blinking = false
+
+	self._is_tracking_character = false
+	self:_clearTrackingDots()
+end
+
+
+
 
 --====================================================================--
 --== Event Handlers
@@ -1166,7 +1212,6 @@ function GameView:_pauseOverlayEvent_handler( event )
 		self._game_is_active = ( not pause_is_active )
 
 	elseif event.type == target.MENU then
-		self:_stopPhysics()
 		self:dispatchEvent( GameView.GAME_EXIT_EVENT )
 
 	end
@@ -1340,24 +1385,12 @@ function GameView:do_state_init( params )
 	--==--
 	self:setState( GameView.STATE_INIT )
 
-	self._game_is_active = true
+	self._pause_overlay.is_active = false
+	self._pause_overlay:show()
 
-	self._game_lives = 4 -- DEBUG
-	self._game_score = 0
+	self:_resetGameView()
 
-	self._dg_game.x = -480
-	self._screen_position = GameView.RIGHT_POS
-
-	self._pause_overlay.isVisible = false
-	self._text_is_blinking = false
-
-
-	self:_startPhysics( true )
-	-- set to "normal" "debug" or "hybrid" to see collision boundaries
-	physics.setDrawMode( 'normal' )
-	physics.setGravity( 0, 11 )	--> 0, 9.8 = Earth-like gravity
-
-	self:_createAllLevelObjects() -- after start physics
+	self:_createAllLevelObjects() -- after game is active
 
 	self:gotoState( GameView.TO_NEW_ROUND )
 end
@@ -1421,13 +1454,15 @@ function GameView:do_state_new_round( params )
 	--==--
 	self:setState( GameView.STATE_NEW_ROUND )
 
-	self._pause_overlay.isVisible = true
+	self._pause_overlay:show()
 	self._character:toFront()
 end
 
 function GameView:state_new_round( next_state, params )
 	-- print( "GameView:state_new_round: >> ", next_state )
-	if next_state == GameView.TO_AIMING_SHOT then
+	if next_state == GameView.STATE_INIT then
+		self:do_state_init( params )
+	elseif next_state == GameView.TO_AIMING_SHOT then
 		self:do_trans_aiming_shot( params )
 	else
 		print( "[WARNING] GameView:state_new_round", tostring( next_state ) )
@@ -1534,7 +1569,7 @@ function GameView:do_state_shot_in_play( params )
 
 	char:applyForce( shot.xForce, shot.yForce, char.x, char.y )
 
-	self._pause_overlay.isVisible = false
+	self._pause_overlay:hide()
 
 end
 function GameView:state_shot_in_play( next_state, params )
@@ -1641,7 +1676,7 @@ function GameView:do_state_end_game( params )
 
 	self._best_score = self._game_score
 
-	self._pause_overlay.isVisible = false
+	self._pause_overlay:hide()
 	self._txt_continue.isVisible = false
 	self._txt_score.isVisible = false
 
