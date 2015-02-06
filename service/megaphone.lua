@@ -35,41 +35,46 @@ local Megaphone = require 'lib.dmc_corona.dmc_megaphone'
 --======================================================--
 -- Pause Gameplay Message
 
+Megaphone.PAUSE_GAMEPLAY = 'pause-gameplay'
+
 --[[
 
 Overview
 
 this message is to be used when gameplay is to be paused
-this is typically used by the App Controller during
-System Events such as 'applicationSuspend' and 'applicationResume'
+this is used by the App Controller when it has received
+the System Event 'applicationSuspend'
+
+Sequence
+App Controller >> Component
 
 Data
-
-None. there is no data sent with message
+None (there is no data sent with message)
 
 --]]
-
-Megaphone.PAUSE_GAMEPLAY = 'pause-gameplay'
 
 
 --======================================================--
 -- Resume Gameplay Message
 
+Megaphone.RESUME_GAMEPLAY = 'resume-gameplay'
+
 --[[
 
 Overview
 
-this message is to be used when gameplay is to be resume
-this is typically used by the App Controller during
-System Events such as 'applicationSuspend' and 'applicationResume'
+this message is to be used when gameplay is to be paused
+this is used by the App Controller when it has received
+the System Event 'applicationResume'
+
+Sequence
+App Controller >> Component
 
 Data
-
-None. there is no data sent with message
+None (there is no data sent with message)
 
 --]]
 
-Megaphone.RESUME_GAMEPLAY = 'resume-gameplay'
 
 
 
