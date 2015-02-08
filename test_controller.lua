@@ -61,13 +61,24 @@ local test_gameMainView
 --== Support Functions
 
 
-local function destroyObjIn( obj, time )
-	if time == nil then time = DESTROY_DELAY_TIME end
-	timer.performWithDelay( time, function()
+-- destroyObjIn()
+-- function to run destruction on object
+-- @param obj, object to destroy, has removeSelf()
+-- @param params, table with optional keys:
+-- time, delay in milliseconds
+-- onDestroy, function to call before destruction
+--
+local function destroyObjIn( obj, params )
+	params = params or {}
+	if params.time == nil then params.time = DESTROY_DELAY_TIME end
+	--==--
+	timer.performWithDelay( params.time, function()
 		print( "Test: destroying object" )
+		if params.onDestroy then params.onDestroy() end
 		obj:removeSelf()
-	end )
+	end)
 end
+
 
 
 --======================================================--
@@ -83,7 +94,7 @@ local function test_levelScreen()
 	o.x, o.y = 240, 160
 
 	local f = function( e )
-		print( "test_levelScreen:" )
+		print( "test_levelScreen" )
 
 		if e.type == o.ACTIVE then
 			print( "is active:", e.is_active )
@@ -501,10 +512,11 @@ function TestController.runTests()
 
 end
 
+
 function TestController.run( params )
 	-- print( "TestController.run", params )
 	params = params or {}
-	params.mode = params.mode==nil and AppController.TEST_MODE or params.mode
+	if params.mode==nil then params.mode=AppController.TEST_MODE end
 	--==--
 	AppController.run( params )
 	ACI = AppController.instance()
