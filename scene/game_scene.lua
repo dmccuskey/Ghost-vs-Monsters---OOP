@@ -1,5 +1,5 @@
 --====================================================================--
--- scene/game.lua
+-- scene/game_scene.lua
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
@@ -16,7 +16,7 @@
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "0.2.0"
+local VERSION = "0.2.1"
 
 
 
@@ -41,20 +41,16 @@ local LoadOverlay = require 'component.load_overlay'
 --== Setup, Constants
 
 
-local scene = nil -- composer scene
-
-
 
 --====================================================================--
 --== Game Scene Class
 --====================================================================--
 
 
-local GameScene = {}
+local GameScene = composer.newScene()
 
 StatesMixModule.patch( GameScene )
-
-GameScene.view = nil -- set in composer
+--GameScene:setDebug( true ) -- enable state debugging
 
 --== State Constants
 
@@ -64,6 +60,11 @@ GameScene.STATE_LOADING = 'state_loading'
 GameScene.STATE_PLAY = 'state_play'
 GameScene.STATE_GAME_OVER = 'state_game_over'
 GameScene.STATE_COMPLETE = 'state_complete'
+
+--== Event Constants
+
+GameScene.EVENT = 'scene-event'
+GameScene.GAME_COMPLETE = 'game-complete'
 
 
 --======================================================--
@@ -98,6 +99,10 @@ function GameScene:__init__( params )
 	self._view_load_f = nil
 
 	self:setState( GameScene.STATE_CREATE )
+end
+
+function GameScene:__undoInit__()
+	-- pass
 end
 
 
@@ -137,11 +142,11 @@ function GameScene:__undoCreateView__()
 	self._dg_main = nil
 end
 
+
 function GameScene:__initComplete__()
 	-- print( "GameScene:__initComplete__" )
 	self:_createGameView()
 	self:_createGameOverOverlay()
-	-- self:gotoState( self.STATE_LOADING )
 end
 
 function GameScene:__undoInitComplete__()
@@ -159,8 +164,13 @@ end
 --== Public Methods
 
 
+--[[
+These are methods that the App Controller can access
+to query the Composer Scene.
+--]]
+
+
 -- getGameView()
---
 -- setup as part of communication example
 --
 function GameScene:getGameView()
@@ -168,9 +178,25 @@ function GameScene:getGameView()
 end
 
 
+function GameScene:loadLevel( params )
+	assert( params.level_data, "missing level data" )
+	self:gotoState( GameScene.STATE_LOADING, params )
+end
+
+
+
 
 --====================================================================--
 --== Private Methods
+
+
+function GameScene:_sceneIsComplete()
+	-- print( "Game Scene:_sceneIsComplete" )
+	self:dispatchEvent{
+		name=GameScene.EVENT,
+		type=GameScene.GAME_COMPLETE
+	}
+end
 
 
 function GameScene:_createLoadOverlay()
@@ -389,8 +415,9 @@ end
 
 
 
---======================================================--
--- START: STATE MACHINE
+--====================================================================--
+--== State Machine
+
 
 --== State Create ==--
 
@@ -501,7 +528,7 @@ function GameScene:do_state_complete( params )
 	self:_destroyLoadOverlay()
 	self:_destroyGameView()
 
-	scene:gameIsComplete()
+	self:_sceneIsComplete()
 
 end
 
@@ -514,98 +541,58 @@ function GameScene:state_complete( next_state, params )
 	end
 end
 
--- END: STATE MACHINE
---======================================================--
-
-
 
 
 --====================================================================--
---== Composer Scene
---====================================================================--
+--== Finish Composer Scene Setup
 
+--[[
+This is just the part we have to do to make everything work with Corona
+--]]
 
-scene = composer.newScene()
-
---== Event Constants
-
-scene.EVENT = 'scene-event'
-scene.GAME_COMPLETE = 'game-complete'
-
---======================================================--
--- START: composer scene setup
-
-function scene:create( event )
-	-- print( "Game Scene:create" )
-	--== Emulate DMC Objects Setup ==--
-	GameScene.view = self.view
-	GameScene:__init__( event.params )
+-- create()
+-- Emulate DMC-style Objects Setup
+--
+function GameScene:create( event )
+	-- print( "GameScene:create" )
+	local params = event.params or {}
+	--==--
+	GameScene:__init__( params )
 	GameScene:__createView__()
 	GameScene:__initComplete__()
 end
 
-function scene:show( event )
-	-- print( "Game Scene:show" )
+function GameScene:show( event )
 	local params = event.params
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
-		-- event information:
+		-- event information from App Controller:
 		-- event.width, event.height, event.level_data
-		GameScene:gotoState( GameScene.STATE_LOADING, {level_data=params.level_data} )
+		self:loadLevel( {level_data=params.level_data} )
 	end
 end
 
-function scene:hide( event )
-	-- print( "Game Scene:hide" )
+function GameScene:hide( event )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
-function scene:destroy( event )
-	-- print( "Game Scene:destroy" )
-	--== Emulate DMC Objects Teardown ==--
+-- destroy()
+-- Emulate DMC-style Objects Teardown
+--
+function GameScene:destroy( event )
 	GameScene:__undoInitComplete__()
 	GameScene:__undoCreateView__()
 	GameScene:__undoInit__()
 end
 
-scene:addEventListener( 'create', scene )
-scene:addEventListener( 'show', scene )
-scene:addEventListener( 'hide', scene )
-scene:addEventListener( 'destroy', scene )
-
--- END: composer scene setup
---======================================================--
-
-
-
---====================================================================--
---== Public Methods
-
-
--- getGameView()
---
--- setup as part of communication example
---
-function scene:getGameView()
-	return GameScene:getGameView()
-end
-
-
--- gameIsComplete()
---
--- let App Controller know we're done
---
-function scene:gameIsComplete()
-	-- print( "Game Scene:gameIsComplete" )
-	scene:dispatchEvent{
-		name=scene.EVENT,
-		type=scene.GAME_COMPLETE
-	}
-end
+GameScene:addEventListener( 'create', GameScene )
+GameScene:addEventListener( 'show', GameScene )
+GameScene:addEventListener( 'hide', GameScene )
+GameScene:addEventListener( 'destroy', GameScene )
 
 
 
 
-return scene
+return GameScene

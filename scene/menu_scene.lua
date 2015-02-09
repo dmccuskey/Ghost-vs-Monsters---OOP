@@ -1,5 +1,5 @@
 --====================================================================--
--- scene/menu.lua
+-- scene/menu_scene.lua
 --
 -- Sample code is MIT licensed, the same license which covers Lua itself
 -- http://en.wikipedia.org/wiki/MIT_License
@@ -15,7 +15,7 @@
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "0.2.0"
+local VERSION = "0.2.1"
 
 
 
@@ -39,20 +39,16 @@ local LoadOverlay = require 'component.load_overlay'
 --== Setup, Constants
 
 
-local scene = nil -- composer scene
-
-
 
 --====================================================================--
 --== Menu Scene Class
 --====================================================================--
 
 
-local MenuScene = {}
+local MenuScene = composer.newScene()
 
 StatesMixModule.patch( MenuScene )
-
-MenuScene.view = nil -- set in composer
+--MenuScene:setDebug( true ) -- enable state debugging
 
 --== State Constants
 
@@ -62,6 +58,11 @@ MenuScene.STATE_LOADING = 'state_loading'
 MenuScene.STATE_NORMAL = 'state_normal'
 MenuScene.STATE_SELECT = 'state_select'
 MenuScene.STATE_COMPLETE = 'state_complete'
+
+--== Event Constants
+
+MenuScene.EVENT = 'scene-event'
+MenuScene.LEVEL_SELECTED = 'level-selected'
 
 
 --======================================================--
@@ -94,6 +95,10 @@ function MenuScene:__init__( params )
 	self._view_load_f = nil
 
 	self:setState( MenuScene.STATE_CREATE )
+end
+
+function MenuScene:__undoInit__()
+	-- pass
 end
 
 
@@ -147,6 +152,7 @@ function MenuScene:__undoCreateView__()
 	o:removeSelf()
 	self._dg_main = nil
 end
+
 
 function MenuScene:__initComplete__()
 	-- print( "MenuScene:__initComplete__" )
@@ -299,8 +305,9 @@ end
 
 
 
---======================================================--
--- START: STATE MACHINE
+--====================================================================--
+--== State Machine
+
 
 --== State Create ==--
 
@@ -347,9 +354,9 @@ function MenuScene:do_state_normal( params )
 	self:_destroyLoadOverlay()
 
 	if params.level then
-		scene:dispatchEvent{
-			name=scene.EVENT,
-			type=scene.LEVEL_SELECTED,
+		self:dispatchEvent{
+			name=MenuScene.EVENT,
+			type=MenuScene.LEVEL_SELECTED,
 			level=params.level
 		}
 	end
@@ -385,66 +392,56 @@ function MenuScene:state_complete( next_state, params )
 	print( "[WARNING] MenuScene:state_complete", tostring( next_state ) )
 end
 
--- END: STATE MACHINE
---======================================================--
-
 
 
 
 --====================================================================--
---== Composer Scene
---====================================================================--
+--== Finish Composer Scene Setup
 
+--[[
+This is just the part we have to do to make everything work with Corona
+--]]
 
-scene = composer.newScene()
-
---== Event Constants
-
-scene.EVENT = 'scene-event'
-scene.LEVEL_SELECTED = 'level-selected'
-
---======================================================--
--- START: composer scene setup
-
-function scene:create( event )
-	-- print( "Menu Scene:create" )
-	--== Emulate DMC Objects Setup ==--
-	MenuScene.view = self.view
-	MenuScene:__init__( event.params )
-	MenuScene:__createView__()
-	MenuScene:__initComplete__()
+-- create()
+-- Emulate DMC-style Objects Setup
+--
+function MenuScene:create( event )
+	-- print( "MenuScene:create" )
+	local params = event.params or {}
+	--==--
+	self:__init__( params )
+	self:__createView__()
+	self:__initComplete__()
 end
 
-function scene:show( event )
-	-- print( "Menu Scene:show" )
+function MenuScene:show( event )
+	local params = event.params
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
-function scene:hide( event )
-	-- print( "Menu Scene:hide" )
+function MenuScene:hide( event )
 	if event.phase == 'will' then
 	elseif event.phase == 'did' then
 	end
 end
 
-function scene:destroy( event )
-	-- print( "Menu Scene:destroy" )
-	--== Emulate DMC Objects Teardown ==--
-	MenuScene:__undoInitComplete__()
-	MenuScene:__undoCreateView__()
-	MenuScene:__undoInit__()
+-- destroy()
+-- Emulate DMC-style Objects Teardown
+--
+function MenuScene:destroy( event )
+	-- print( "MenuScene:destroy" )
+	self:__undoInitComplete__()
+	self:__undoCreateView__()
+	self:__undoInit__()
 end
 
-scene:addEventListener( 'create', scene )
-scene:addEventListener( 'show', scene )
-scene:addEventListener( 'hide', scene )
-scene:addEventListener( 'destroy', scene )
-
--- END: composer scene setup
---======================================================--
+MenuScene:addEventListener( 'create', MenuScene )
+MenuScene:addEventListener( 'show', MenuScene )
+MenuScene:addEventListener( 'hide', MenuScene )
+MenuScene:addEventListener( 'destroy', MenuScene )
 
 
 
-return scene
+return MenuScene
