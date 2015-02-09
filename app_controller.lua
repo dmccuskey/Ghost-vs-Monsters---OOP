@@ -290,14 +290,13 @@ end
 function AppController:_gotoScene( name, params )
 	-- print( "AppController:_gotoScene: ", name )
 	--==--
-	local o, f = self._current_scene, self._current_scene_f
+	if composer.getSceneName( 'current' ) == name then return end
+
+	local o = self._current_scene
 	local options = {
 		params = self:_getDefaultSceneParams( params )
 	}
-
-	if composer.getSceneName( 'current' ) == name then return end
-
-	assert( options.params.width and options.params.height, 'ERROR: app sections must be given width and height params' )
+	assert( options.params.width and options.params.height, 'ERROR: app scenes must be given width and height params' )
 
 	self:_removeSceneHandler( o )
 
