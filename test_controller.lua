@@ -80,6 +80,18 @@ local function destroyObjIn( obj, params )
 end
 
 
+local function destroySceneIn( name, params )
+	params = params or {}
+	if params.time == nil then params.time = DESTROY_DELAY_TIME end
+	--==--
+	timer.performWithDelay( params.time, function()
+		print( "Test: destroying scene" )
+		if params.onDestroy then params.onDestroy() end
+		composer.removeScene( name )
+	end)
+end
+
+
 
 --======================================================--
 -- Test: Level Screen
@@ -445,8 +457,9 @@ local function test_gameScene()
 	}
 
 	composer.gotoScene( scene_name, scene_options )
-	o = composer.getScene( scene_name )
 
+	-- test scene destruction
+	destroySceneIn( scene_name )
 end
 
 
@@ -466,8 +479,9 @@ local function test_menuScene()
 	}
 
 	composer.gotoScene( scene_name, scene_options )
-	o = composer.getScene( scene_name )
 
+	-- test scene destruction
+	destroySceneIn( scene_name )
 end
 
 
