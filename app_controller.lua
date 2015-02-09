@@ -108,6 +108,9 @@ local AppController = newClass( { ComponentBase, StatesMix }, {name="App Control
 AppController.RUN_MODE = 'run'
 AppController.TEST_MODE = 'test'
 
+AppController.MENU_SCENE = 'scene.menu_scene'
+AppController.GAME_SCENE = 'scene.game_scene'
+
 --== State Constants
 
 AppController.STATE_CREATE = 'state_create'
@@ -347,7 +350,7 @@ function AppController:_pauseGamePlay( options )
 	else
 		--== direct communication
 		local game_scene, game_view
-		game_scene = composer.getScene( 'scene.game' )
+		game_scene = composer.getScene( AppController.GAME_SCENE )
 		-- simple output to show details
 		if game_scene then
 			game_view = game_scene:getGameView()
@@ -369,13 +372,13 @@ function AppController:_resumeGamePlay( options )
 	else
 		--== direct communication
 		local game_scene, game_view
-		game_scene = composer.getScene( 'scene.game' )
+		game_scene = composer.getScene( AppController.GAME_SCENE )
 		-- simple output to show details
 		if game_scene then
 			game_view = game_scene:getGameView()
 			if game_view then game_view:resumeGamePlay() end
 		elseif LOCAL_DEBUG then
-			print( "GameView not loaded" )
+			print( "Game View not loaded" )
 		end
 
 	end
@@ -526,7 +529,7 @@ function AppController:do_state_menu( params )
 	self:setState( AppController.STATE_MENU )
 
 	local params = {}
-	self:_gotoScene( 'scene.menu', params )
+	self:_gotoScene( AppController.MENU_SCENE, params )
 
 end
 
@@ -552,7 +555,7 @@ function AppController:do_state_game( params )
 	local params = {
 		level_data=params.level_data
 	}
-	self:_gotoScene( 'scene.game', params )
+	self:_gotoScene( AppController.GAME_SCENE, params )
 
 end
 

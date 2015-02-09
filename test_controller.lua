@@ -434,7 +434,7 @@ end
 local function test_gameScene()
 	print( "test_gameScene" )
 
-	local scene_name = 'scene.game'
+	local scene_name = ACI.GAME_SCENE
 	local o
 
 	local scene_options = {
@@ -456,7 +456,7 @@ end
 local function test_menuScene()
 	print( "test_menuScene" )
 
-	local scene_name = 'scene.menu'
+	local scene_name = ACI.MENU_SCENE
 	local o
 
 	local scene_options = {
