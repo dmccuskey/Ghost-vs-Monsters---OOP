@@ -1,7 +1,7 @@
 --====================================================================--
 -- dmc_corona_boot.lua
 --
---  utility to read in dmc_corona configuration file
+--  utility to read in configuration file for dmc-corona-library
 --
 -- Documentation:
 --====================================================================--
@@ -41,7 +41,7 @@ SOFTWARE.
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "1.5.0"
+local VERSION = "1.5.1"
 
 
 
@@ -58,10 +58,11 @@ if not has_json then json = nil end
 --== Setup, Constants
 
 
-local tinsert = table.insert
-local tconcat = table.concat
 local sfind = string.find
 local sgsub = string.gsub
+local tconcat = table.concat
+local tinsert = table.insert
+local tremove = table.remove
 
 local PLATFORM_NAME = system.getInfo( 'platformName' )
 
@@ -105,7 +106,7 @@ function Utils.split( str, sep )
 	if sep == nil then
 		sep = "%s"
 	end
-	t={} ; i=1
+	local t, i = {}, 1
 	for str in string.gmatch( str, "([^"..sep.."]+)") do
 		t[i] = str
 		i = i + 1
@@ -140,10 +141,10 @@ function Utils.sysPathToRequirePath( sys_path )
 	-- clean off any dots
 	for i=#sys_tbl, 1, -1 do
 		if sys_tbl[i]=='.' then
-			table.remove( sys_tbl, i )
+			tremove( sys_tbl, i )
 		end
 	end
-	return table.concat( sys_tbl, '.' )
+	return tconcat( sys_tbl, '.' )
 end
 
 -- takes Lua module dot to system path
@@ -156,10 +157,10 @@ function Utils.cleanSystemPath( sys_path )
 	-- clean off any dots
 	for i=#sys_tbl, 1, -1 do
 		if sys_tbl[i]=='.' then
-			table.remove( sys_tbl, i )
+			tremove( sys_tbl, i )
 		end
 	end
-	return table.concat( sys_tbl, sep )
+	return tconcat( sys_tbl, sep )
 end
 
 
@@ -205,7 +206,7 @@ end
 function File._readLines( fh )
 	local contents = {}
 	for line in fh:lines() do
-		table.insert( contents, line )
+		tinsert( contents, line )
 	end
 	return contents
 end
@@ -290,7 +291,7 @@ function File.processKeyLine( line )
 	-- split up key parts
 	local keys = {}
 	for k in string.gmatch( raw_key, "([^:]+)") do
-		table.insert( keys, #keys+1, k )
+		tinsert( keys, #keys+1, k )
 	end
 
 	-- trim off quotes, make sure balanced
@@ -304,6 +305,7 @@ function File.processKeyLine( line )
 	key_type = File.processKeyType( key_type )
 
 	-- get final value
+	local key_value
 	if key_type and Utils.propertyIn( KEY_TYPES, key_type ) then
 		local method = 'castTo_'..key_type
 		key_value = File[method]( trim )
@@ -430,20 +432,44 @@ local DMC_CORONA_CONFIG_FILE = 'dmc_corona.cfg'
 local DMC_CORONA_DEFAULT_SECTION = 'dmc_corona'
 
 -- locations of third party libs used by dmc_corona
-local THIRD_LIBS = { 'lib/dmc_lua' }
+local THIRD_LIBS = {}
+
+--- add 'lib/dmc' location
+tinsert( THIRD_LIBS, tconcat( {'lib','dmc_lua'}, Utils.getSystemSeparator() ) )
 
 local REQ_STACK = {}
 
 
 local function pushStack( value )
-	table.insert( REQ_STACK, value )
+	-- print( "pre stack (pre):", #REQ_STACK)
+	tinsert( REQ_STACK, value )
 end
 local function popStack()
+	-- print( "pop stack (pre):", #REQ_STACK)
 	if REQ_STACK == 0 then
 		-- print( "nothing ins stack")
-		error( "nothing in stack" )
+		error( "!!!! nothing in stack" )
 	end
-	return table.remove( REQ_STACK )
+	return tremove( REQ_STACK )
+end
+
+local wrapError, unwrapError, processError
+
+wrapError = function( stack, message, level )
+	-- we package or unpackage
+	local package = { stack, message, level }
+	return processError( stack, package )
+end
+unwrapError = function( package )
+	return unpack( package )
+end
+processError = function( stack, package )
+	if stack==0 then
+		local stack, message, level = unwrapError( package )
+		return message, level
+	else
+		return package
+	end
 end
 
 
@@ -463,41 +489,42 @@ local function newRequireFunction( module_name )
 	local idx = 1
 
 	pushStack( module_name )
+
 	repeat
 		local mod_path = lua_paths[idx]
 		local path = ( mod_path=='' and mod_path or mod_path..'.' ) .. module_name
 
-		local has_module, result = pcall( _require, path )
 
+		local has_module, result = pcall( _require, path )
 		if has_module then
 			library = result
 
 		elseif type( result )=='table' then
-			-- print( "from below", #REQ_STACK)
-			err = result
-			popStack()
+			-- this is a packaged error from the call-stack
+			-- now we're just trying to show it
+			-- so we have to unwind the call-stack
 
-			if #REQ_STACK==0 then
-				local stk = table.remove( result, 1 )
-				error( table.concat( result, '\n' ), 3 )
-			else
-				error( result )
-			end
+			err = result
 
 		else
-			if sfind( result, '^error loading module' ) then
-				-- print( "error loading module", #REQ_STACK )
-				result="\n"..result
-				popStack()
-				if #REQ_STACK==0 then
-					error( result, 3 )
-				else
-					error( { #REQ_STACK, result } )
-				end
-			elseif sfind( result, '^module' ) then
-				-- pass
+			-- we just got error from Lua, so we need to handle it
+
+			if sfind( result, '^module' ) then
+				-- "module not found"
+				-- pass on this because we could have more places to check
+
+			elseif sfind( result, '^error loading module' ) then
+				-- "error loading module"
+				-- we can't proceed with this error, so
+				-- package up to travel back up call-stack
+
+				result="\n\n"..result
+				err = wrapError( #REQ_STACK, result, 2 )
+
 			else
-				error( result )
+				-- we have some unknown error
+				print("other error")
+				err = wrapError( #REQ_STACK, result, 3 )
 			end
 
 		end
@@ -505,14 +532,16 @@ local function newRequireFunction( module_name )
 		idx=idx+1
 	until err or library or idx > #lua_paths
 
-	if not library then
-		local emsg = string.format( "\nThe module '%s' not found in archive:", tostring( module_name) )
-		local err = { #REQ_STACK, debug.traceback( emsg, 2 ) }
-		popStack()
-		error( err )
-	end
-
 	popStack()
+
+	if err then
+		error( processError( #REQ_STACK, err ) )
+
+	elseif not library then
+		-- print("not found")
+		local emsg = string.format( "\nThe module '%s' not found in archive:", tostring( module_name) )
+		error( wrapError( #REQ_STACK, debug.traceback( emsg ), 3 ))
+	end
 
 	return library
 end
@@ -570,11 +599,11 @@ local function setupRequireLoading()
 		local mod_path, third_path
 		mod_path = path_info[i]
 		-- print( ">s1", sys2reqPath( mod_path ) )
-		table.insert( req_paths, sys2reqPath( mod_path ) )
+		tinsert( req_paths, sys2reqPath( mod_path ) )
 		for i=1,#THIRD_LIBS do
 			third_path = THIRD_LIBS[i]
 			-- print( ">s2", sys2reqPath( mod_path..'.'..third_path ) )
-			table.insert( req_paths, sys2reqPath( mod_path..'.'..third_path ) )
+			tinsert( req_paths, sys2reqPath( mod_path..'.'..third_path ) )
 		end
 	end
 end
