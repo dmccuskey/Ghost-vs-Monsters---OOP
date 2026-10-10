@@ -354,18 +354,18 @@ function GameScene:_gameViewEvent_handler( event )
 		-- pass
 
 	elseif event.type == target.GAME_OVER_EVENT then
-		-- event data:
-		-- event.outcome, event.score, event.best_score
+		-- event data: outcome, score, best_score
+		local data = event.data
 		local outcome
-		if event.outcome == target.WIN_GAME then
+		if data.outcome == target.WIN_GAME then
 			outcome = self._view_gameover.WIN_GAME
 		else
 			outcome = self._view_gameover.LOSE_GAME
 		end
 		local p = {
 			outcome=outcome,
-			score=event.score,
-			bestscore=event.best_score
+			score=data.score,
+			bestscore=data.best_score
 		}
 		self:gotoState( self.STATE_GAME_OVER, p )
 

@@ -27,9 +27,10 @@ local VERSION = "0.2.0"
 --== Imports
 
 
+local AppUtils = require 'lib.app_utils'
 local Objects = require 'lib.dmc_corona.dmc_objects'
 local Utils = require 'lib.dmc_corona.dmc_utils'
-local Widgets = require 'lib.dmc_widgets'
+local dUI = require 'lib.dmc_ui'
 
 
 
@@ -156,13 +157,13 @@ function LevelOverlay:__createView__()
 	-- Level 1 Button
 
 	tmp = self._bg
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='level-1-button',
-		view='image',
-		file='assets/buttons/level1btn.png',
-		width=114, height=114,
-		active={
-			file='assets/buttons/level1btn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=114, height=114,
+			file='assets/buttons/level1btn.png',
+			active_file='assets/buttons/level1btn-over.png'
 		}
 	}
 	o.x, o.y = -(tmp.width/2)+o.width/2+40, tmp.y+tmp.height-o.height/2-25
@@ -174,13 +175,13 @@ function LevelOverlay:__createView__()
 	-- Level 2 Button
 
 	tmp = self._bg
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='level-2-button',
-		view='image',
-		file='assets/buttons/level2btn.png',
-		width=114, height=114,
-		active={
-			file='assets/buttons/level2btn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=114, height=114,
+			file='assets/buttons/level2btn.png',
+			active_file='assets/buttons/level2btn-over.png'
 		}
 	}
 	o.x, o.y = (tmp.width/2)-o.width/2-40, tmp.y+tmp.height-o.height/2-25
@@ -192,13 +193,13 @@ function LevelOverlay:__createView__()
 	-- Close Button
 
 	tmp = self._bg
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='close-button',
-		view='image',
-		file='assets/buttons/closebtn.png',
-		width=44, height=44,
-		active={
-			file='assets/buttons/closebtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=44, height=44,
+			file='assets/buttons/closebtn.png',
+			active_file='assets/buttons/closebtn-over.png'
 		}
 	}
 	o.x, o.y = -(tmp.width/2)+10, tmp.y+tmp.height-10

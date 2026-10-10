@@ -27,9 +27,10 @@ local VERSION = "0.2.0"
 
 
 --local Facebook = require 'dmc_facebook'
+local AppUtils = require 'lib.app_utils'
 local Objects = require 'lib.dmc_corona.dmc_objects'
 -- local Utils = require 'lib.dmc_corona.dmc_utils'
-local Widgets = require 'lib.dmc_widgets'
+local dUI = require 'lib.dmc_ui'
 
 
 
@@ -144,13 +145,13 @@ function PauseOverlay:__createView__()
 
 	-- main menu button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='menu-button',
-		view='image',
-		file='assets/buttons/pausemenubtn.png',
-		width=44, height=44,
-		active={
-			file='assets/buttons/pausemenubtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=44, height=44,
+			file='assets/buttons/pausemenubtn.png',
+			active_file='assets/buttons/pausemenubtn-over.png'
 		}
 	}
 	o.x, o.y = -200, BASE_YPOS
@@ -160,13 +161,13 @@ function PauseOverlay:__createView__()
 
 	-- pause button
 
-	o = Widgets.newToggleButton{
+	o = dUI.newToggleButton{
 		id='pause-button',
-		view='image',
-		file='assets/buttons/pausebtn.png',
-		width=44, height=44,
-		active={
-			file='assets/buttons/pausebtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=44, height=44,
+			file='assets/buttons/pausebtn.png',
+			active_file='assets/buttons/pausebtn-over.png'
 		}
 	}
 	o.x, o.y = 200, BASE_YPOS
@@ -220,7 +221,7 @@ function PauseOverlay:__initComplete__()
 	o = self._btn_menu
 	o.onRelease = self:createCallback( self._menuButtonEvent_handler )
 
-	self.is_active = self._btn_pause.is_active
+	self.is_active = self._btn_pause.isActive
 	self:show()
 end
 -- __undoInitComplete__()
@@ -251,7 +252,7 @@ function PauseOverlay.__setters:is_active( value )
 	--==--
 	if self._is_paused == value then return end
 	self._is_paused = value
-	-- self._btn_pause.is_active = value
+	-- self._btn_pause.isActive = value
 	self._group.isVisible = value
 end
 
@@ -288,8 +289,8 @@ function PauseOverlay:_pauseButtonEvent_handler( event )
 
 	self._sound_mgr:play( self._sound_mgr.TAP )
 
-	self.is_active = btn.is_active
-	self:dispatchEvent( self.ACTIVE, {is_active=btn.is_active} )
+	self.is_active = btn.isActive
+	self:dispatchEvent( self.ACTIVE, {is_active=btn.isActive} )
 end
 
 

@@ -1,7 +1,7 @@
 --====================================================================--
 -- dmc_lua/lua_megaphone.lua
 --
--- Documentation: http://docs.davidmccuskey.com/
+-- Documentation: https://github.com/dmccuskey/lua-megaphone
 --====================================================================--
 
 --[[
@@ -39,7 +39,7 @@ SOFTWARE.
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "1.1.0"
+local VERSION = "1.3.0"
 
 
 
@@ -48,7 +48,6 @@ local VERSION = "1.1.0"
 
 
 local Objects = require 'lua_objects'
-local LuaEventsMixin = require 'lua_events_mix'
 
 
 
@@ -56,11 +55,7 @@ local LuaEventsMixin = require 'lua_events_mix'
 --== Setup, Constants
 
 
--- setup some aliases to make code cleaner
-local newClass = Objects.newClass
-local Class = Objects.Class
-
-local EventsMix = LuaEventsMixin.EventsMix
+local ObjectBase = Objects.ObjectBase
 
 local singleton = nil
 
@@ -71,20 +66,23 @@ local singleton = nil
 --====================================================================--
 
 
-local Megaphone = newClass( { Class, EventsMix }, { name="Lua Megaphone" } )
+local Megaphone = Objects.newClass( ObjectBase, { name="Lua Megaphone" } )
 
 --== Event Constants ==--
 
 Megaphone.EVENT = 'megaphone_event'
 
+Megaphone.__version = VERSION
+
 
 --======================================================--
 -- Start: Setup Lua Objects
 
+--[[
 function Megaphone:__new__( ... )
 	-- print( "Megaphone:__new__" )
-	EventsMix.__init__( self, ... )
 end
+--]]
 
 --[[
 function Megaphone:__destroy__( ... )
@@ -102,23 +100,23 @@ end
 --== Public Methods
 
 
-function Megaphone:say( message, params )
+function Megaphone:say( message, data, params )
 	-- print( "Megaphone:say ", message )
 	params = params or {}
 	assert( type(message)=='string', "Megaphone:say, arg 'message' must be a string" )
-	assert( type(params)=='table', "Megaphone:say, arg 'params' must be a table" )
+	assert( params==nil or type(params)=='table', "Megaphone:say, arg 'params' must be a table" )
 	--==--
-	self:dispatchEvent( message, params )
+	self:dispatchEvent( message, data, params )
 end
 function Megaphone:listen( listener )
 	-- print( "Megaphone:listen " )
-	assert( type(listener)=='function', "Megaphone:listen, arg 'listener' must be a function" )
+	assert( type(listener)=='function' or type(listener)=='table', "Megaphone:listen, arg 'listener' must be a function or an object" )
 	--==--
 	self:addEventListener( Megaphone.EVENT, listener )
 end
 function Megaphone:ignore( listener )
 	-- print( "Megaphone:ignore " )
-	assert( type(listener)=='function', "Megaphone:ignore, arg 'listener' must be a function" )
+	assert( type(listener)=='function' or type(listener)=='table', "Megaphone:ignore, arg 'listener' must be a function or an object" )
 	--==--
 	self:removeEventListener( Megaphone.EVENT, listener )
 end

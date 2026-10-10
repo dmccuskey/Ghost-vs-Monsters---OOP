@@ -1,7 +1,7 @@
 --====================================================================--
 -- lua_patch.lua
 --
--- Documentation: http://docs.davidmccuskey.com/
+-- Documentation: https://github.com/dmccuskey/lua-patch
 --====================================================================--
 
 --[[
@@ -39,7 +39,7 @@ SOFTWARE.
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "0.3.0"
+local VERSION = "0.4.0"
 
 
 
@@ -57,13 +57,19 @@ local Utils = {} -- make copying easier
 
 local lua_patch_data = {
 	string_format_active = false,
-	table_pop_active = false
+	table_pop_active = false,
+	print_output_active = false
 }
 
 local PATCH_TABLE_POP = 'table-pop'
 local PATCH_STRING_FORMAT = 'string-format'
+local PATCH_PRINT_OUTPUT = 'print-output'
 local addTablePopPatch, removeTablePopPatch
 local addStringFormatPatch, removeStringFormatPatch
+local addPrintOutputPatch, removePrintOutputPatch
+
+local sfmt = string.format
+local tstr = tostring
 
 
 
@@ -72,6 +78,19 @@ local addStringFormatPatch, removeStringFormatPatch
 
 
 --== Start: copy from lua_utils ==--
+-- Copied, not required, so this file loads on its own, without
+-- lua_utils. A fix to the function in lua_utils goes here too.
+
+local unpack = unpack or table.unpack
+
+-- the highest positive integer key: #t may stop at a nil hole
+local maxn = table.maxn or function( t )
+	local n = 0
+	for k in pairs( t ) do
+		if type(k)=='number' and k>n and k%1==0 then n = k end
+	end
+	return n
+end
 
 -- stringFormatting()
 -- implement Python-style string replacement
@@ -81,7 +100,7 @@ function Utils.stringFormatting( a, b )
 	if not b then
 		return a
 	elseif type(b) == "table" then
-		return string.format(a, unpack(b))
+		return string.format(a, unpack(b, 1, maxn(b)))
 	else
 		return string.format(a, b)
 	end
@@ -98,9 +117,9 @@ local function addLuaPatch( input )
 	elseif type(input)=='string' then
 		input = { input }
 	elseif type(input)=='nil' then
-		input = { PATCH_TABLE_POP, PATCH_STRING_FORMAT }
+		input = { PATCH_TABLE_POP, PATCH_STRING_FORMAT, PATCH_PRINT_OUTPUT }
 	else
-		error( "Lua Patch:: unknown patch type '" .. type(input) .. "'" )
+		error( sfmt( "Lua Patch:: unknown patch type '%s'", type(input) ) )
 	end
 
 	for i, patch_name in ipairs( input ) do
@@ -110,8 +129,11 @@ local function addLuaPatch( input )
 		elseif patch_name == PATCH_STRING_FORMAT then
 			addStringFormatPatch()
 
+		elseif patch_name == PATCH_PRINT_OUTPUT then
+			addPrintOutputPatch()
+
 		else
-			error( "Lua Patch:: unknown patch name '" .. tostring( patch ) .. "'" )
+			error( sfmt( "Lua Patch:: unknown patch name '%s'", tostring( patch_name ) ) )
 		end
 	end
 end
@@ -129,9 +151,9 @@ local function removeLuaPatch( input )
 	elseif type(input)=='string' then
 		input = { input }
 	elseif type(input)=='nil' then
-		input = { PATCH_TABLE_POP, PATCH_STRING_FORMAT }
+		input = { PATCH_TABLE_POP, PATCH_STRING_FORMAT, PATCH_PRINT_OUTPUT }
 	else
-		error( "Lua Patch:: unknown patch type '" .. type(input) .. "'" )
+		error( sfmt( "Lua Patch:: unknown patch type '%s'", type(input) ) )
 	end
 
 	for i, patch_name in ipairs( input ) do
@@ -141,15 +163,18 @@ local function removeLuaPatch( input )
 		elseif patch_name == PATCH_STRING_FORMAT then
 			removeStringFormatPatch()
 
+		elseif patch_name == PATCH_PRINT_OUTPUT then
+			removePrintOutputPatch()
+
 		else
-			error( "Lua Patch:: unknown patch name '" .. tostring( patch ) .. "'" )
+			error( sfmt( "Lua Patch:: unknown patch name '%s'", tostring( patch_name ) ) )
 		end
 	end
 end
 
 
 local function removeAllLuaPatches()
-	addAllLuaPatches( nil )
+	removeLuaPatch( nil )
 end
 
 
@@ -159,10 +184,8 @@ end
 --====================================================================--
 
 
-
---====================================================================--
---== Python-style string formatting
-
+--======================================================--
+-- Python-style string formatting
 
 addStringFormatPatch = function()
 	if lua_patch_data.string_format_active == false then
@@ -181,10 +204,8 @@ removeStringFormatPatch = function()
 end
 
 
-
---====================================================================--
---== Python-style table pop() method
-
+--======================================================--
+-- Python-style table pop() method
 
 -- tablePop()
 --
@@ -213,6 +234,48 @@ removeTablePopPatch = function()
 end
 
 
+--======================================================--
+-- Print Output functions
+
+local function printNotice( str, params )
+	params = params or {}
+	if params.newline==nil then params.newline=true end
+	--==--
+	local prefix = "NOTICE"
+	local nlstr = "\n\n"
+	if not params.newline then nlstr='' end
+	print( sfmt( "%s[%s] %s%s", nlstr, prefix, tstr(str), nlstr ) )
+end
+
+local function printWarning( str, params )
+	params = params or {}
+	if params.newline==nil then params.newline=true end
+	--==--
+	local prefix = "WARNING"
+	local nlstr = "\n\n"
+	if not params.newline then nlstr='' end
+	print( sfmt( "%s[%s] %s%s", nlstr, prefix, tstr(str), nlstr ) )
+end
+
+
+addPrintOutputPatch = function()
+	if lua_patch_data.print_output_active == false then
+		_G.pnotice = printNotice
+		_G.pwarn = printWarning
+		lua_patch_data.print_output_active = true
+	end
+end
+
+removePrintOutputPatch = function()
+	if lua_patch_data.print_output_active == true then
+		_G.pnotice = nil
+		_G.pwarn = nil
+		lua_patch_data.print_output_active = false
+	end
+end
+
+
+
 
 --====================================================================--
 --== Patch Facade
@@ -220,8 +283,14 @@ end
 
 
 return {
+	__version=VERSION,
+
+	PATCH_TABLE_POP=PATCH_TABLE_POP,
+	PATCH_STRING_FORMAT=PATCH_STRING_FORMAT,
+	PATCH_PRINT_OUTPUT=PATCH_PRINT_OUTPUT,
+
 	addPatch = addLuaPatch,
 	addAllPatches=addAllLuaPatches,
 	removePatch=removeLuaPatch,
-	removeAllPatches=removeAllLuaPatch,
+	removeAllPatches=removeAllLuaPatches,
 }

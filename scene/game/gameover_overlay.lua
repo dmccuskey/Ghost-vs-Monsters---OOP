@@ -29,7 +29,7 @@ local VERSION = "0.2.0"
 local AppUtils = require 'lib.app_utils'
 local Objects = require 'lib.dmc_corona.dmc_objects'
 local Utils = require 'lib.dmc_corona.dmc_utils'
-local Widgets = require 'lib.dmc_widgets'
+local dUI = require 'lib.dmc_ui'
 
 
 
@@ -179,13 +179,13 @@ function GameOver:__createView__()
 
 	-- Open Feint button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='feint-button',
-		view='image',
-		file='assets/buttons/openfeintbtn.png',
-		width=168, height=40,
-		active={
-			file='assets/buttons/openfeintbtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=168, height=40,
+			file='assets/buttons/openfeintbtn.png',
+			active_file='assets/buttons/openfeintbtn-over.png'
 		}
 	}
 
@@ -195,13 +195,13 @@ function GameOver:__createView__()
 
 	-- facebook Button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='facebook-button',
-		view='image',
-		file='assets/buttons/facebookbtn.png',
-		width=302, height=40,
-		active={
-			file='assets/buttons/facebookbtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=302, height=40,
+			file='assets/buttons/facebookbtn.png',
+			active_file='assets/buttons/facebookbtn-over.png'
 		}
 	}
 
@@ -226,13 +226,13 @@ function GameOver:__createView__()
 
 	-- menu Button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='menu-button',
-		view='image',
-		file='assets/buttons/menubtn.png',
-		width=60, height=60,
-		active={
-			file='assets/buttons/menubtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=60, height=60,
+			file='assets/buttons/menubtn.png',
+			active_file='assets/buttons/menubtn-over.png'
 		}
 	}
 	o.x, o.y = 0, 186
@@ -242,13 +242,13 @@ function GameOver:__createView__()
 
 	-- replay Button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='replay-button',
-		view='image',
-		file='assets/buttons/restartbtn.png',
-		width=60, height=60,
-		active={
-			file='assets/buttons/restartbtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=60, height=60,
+			file='assets/buttons/restartbtn.png',
+			active_file='assets/buttons/restartbtn-over.png'
 		}
 	}
 	o.x, o.y = 0, 186
@@ -258,13 +258,13 @@ function GameOver:__createView__()
 
 	-- next Button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='next-button',
-		view='image',
-		file='assets/buttons/nextlevelbtn.png',
-		width=60, height=60,
-		active={
-			file='assets/buttons/nextlevelbtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=60, height=60,
+			file='assets/buttons/nextlevelbtn.png',
+			active_file='assets/buttons/nextlevelbtn-over.png'
 		}
 	}
 	o.x, o.y = 0, 186

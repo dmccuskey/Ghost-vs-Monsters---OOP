@@ -23,7 +23,7 @@ The rewrite follows one principle from *Head First Design Patterns*: "Identify t
 
 The game itself is meant to stay the same: from the player's side, nothing should look different, except a few additions such as a progress bar on the loading screen. Much of the original code and many of its variable names remain, so the two code bases are easy to compare.
 
-Version 2.0 (2015) brought it up to date with Corona's Graphics 2.0, replaced the Director library with Composer, the UI library with buttons from [DMC-Corona-UI](https://github.com/dmccuskey/DMC-Corona-UI) (then DMC-Corona-Widgets), and moved the components into their own files and folders.
+Version 2.0 (2015) brought it up to date with Corona's Graphics 2.0, replaced the Director library with Composer, the UI library with buttons from [DMC-Corona-UI](https://github.com/dmccuskey/DMC-Corona-UI) (then DMC-Corona-Widgets), and moved the components into their own files and folders. In 2026 its copies of the DMC libraries were replaced by the current ones.
 
 ## Project Layout
 
@@ -41,7 +41,10 @@ Version 2.0 (2015) brought it up to date with Corona's Graphics 2.0, replaced th
 | `service/sound_manager.lua` | Loads and plays the sounds. |
 | `service/megaphone.lua` | Global messages between components, used when `GLOBAL_COMMS` is on. |
 | `test_controller.lua` | Runs one component on its own, for development. |
-| `lib/`, `dmc_corona_boot.lua`, `dmc_corona.cfg` | The DMC libraries the app uses (2015 copies), and their loader and settings ([dmc-corona-boot](https://github.com/dmccuskey/dmc-corona-boot)). |
+| `lib/app_utils.lua`, `lib/movieclip.lua` | The app's own helpers: number formatting, the style of an image button, and the original's movie clip library. |
+| `lib/dmc_ui.lua`, `lib/dmc_ui/`, `lib/dmc_corona/`, `dmc_corona_boot.lua` | The DMC libraries the app uses and their loader: copies, made by the build below. |
+| `dmc_corona.cfg` | The libraries' settings ([dmc-corona-boot](https://github.com/dmccuskey/dmc-corona-boot)). |
+| `Snakefile`, `snakemake/snakeconfig.json` | The build: which libraries are copied, and where to. |
 
 The ghost is the most involved object. A state machine (dmc-objects' States mixin) runs it through its life: Conceived, Born, Living, Aiming, Flying, Hit, Dying and Dead. It brings itself onto the stage, hovers until launched, then handles its blast, collisions and images, which makes its behavior easy to follow and to change. The game view is a state machine too: a new round, aiming, a shot in play, the end of a round, the end of the game.
 
@@ -52,9 +55,21 @@ The ghost is the most involved object. A state machine (dmc-objects' States mixi
 | `GLOBAL_COMMS` | `false` (default), `true` | How components talk: directly to each other, or through global messages (dmc-megaphone). |
 | `gMODE` | `'RUN'` (default), `'TEST'` | `'TEST'` starts `test_controller.lua`, which shows one component on its own: uncomment the one you want in `TestController.runTests()` (the loading screen by default). |
 
+## The DMC Libraries
+
+The app's own code uses [dmc-objects](https://github.com/dmccuskey/dmc-objects) (classes and components), [dmc-states-mixin](https://github.com/dmccuskey/dmc-states-mixin) (the state machines), [dmc-utils](https://github.com/dmccuskey/dmc-utils), [dmc-megaphone](https://github.com/dmccuskey/dmc-megaphone) (global messages) and [DMC-Corona-UI](https://github.com/dmccuskey/DMC-Corona-UI) (the buttons). The copies in `lib/` are those and the libraries they need, nothing else; they are generated, so fix a library in its own repository.
+
+To update the copies, check out each library named in the `Snakefile` next to this repository, then run [Snakemake](https://snakemake.github.io) here:
+
+```sh
+snakemake --cores 1 build_module     # copy the libraries into lib/
+snakemake --cores 1 -n build_module  # dry run: show what would be copied
+```
+
+The build rules are DMC-Corona-UI's (`snakemake/Snakefile` there). `snakemake/snakeconfig.json` lists every library with its folder, which also makes the build copy each one as it is, without the libraries its own `Snakefile` requires: DMC-Corona-UI's requires the whole of DMC-Corona-Library.
+
 ## Known Issues
 
-- The libraries in `lib/` are 2015 copies of the DMC libraries; the loader was updated in 2026 so the game runs on current Solar2D.
 - The OpenFeint settings in `main.lua` are left from the original; OpenFeint shut down in 2012.
 - In 2015 the physics world sometimes glitched at the start of a level, then settled; the original had the same problem.
 
