@@ -1,0 +1,20 @@
+{
+	"module": {
+		"libs": {
+			"dmc-corona-boot": "",
+			"DMC-Lua-Library": "lib/dmc_corona/lib/dmc_lua",
+			"DMC-Corona-UI": "lib",
+			"dmc-events-mixin": "lib/dmc_corona",
+			"dmc-gestures": "lib/dmc_corona",
+			"dmc-kolor": "lib/dmc_corona",
+			"dmc-lifecycle-mixin": "lib/dmc_corona",
+			"dmc-megaphone": "lib/dmc_corona",
+			"dmc-objects": "lib/dmc_corona",
+			"dmc-patch": "lib/dmc_corona",
+			"dmc-path": "lib/dmc_corona",
+			"dmc-states-mixin": "lib/dmc_corona",
+			"dmc-touchmanager": "lib/dmc_corona",
+			"dmc-utils": "lib/dmc_corona"
+		}
+	}
+}

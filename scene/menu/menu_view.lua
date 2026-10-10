@@ -23,9 +23,10 @@ local VERSION = "0.1.0"
 --== Imports
 
 
+local AppUtils = require 'lib.app_utils'
 local Objects = require 'lib.dmc_corona.dmc_objects'
 local Utils = require 'lib.dmc_corona.dmc_utils'
-local Widgets = require 'lib.dmc_widgets'
+local dUI = require 'lib.dmc_ui'
 
 --== Components
 
@@ -186,13 +187,13 @@ function MenuView:__createView__()
 
 	-- openfeint button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='feint-button',
-		view='image',
-		file='assets/buttons/menuofbtn.png',
-		width=118, height=88,
-		active={
-			file='assets/buttons/menuofbtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=118, height=88,
+			file='assets/buttons/menuofbtn.png',
+			active_file='assets/buttons/menuofbtn-over.png'
 		}
 	}
 	o.x, o.y = 0,0
@@ -203,13 +204,13 @@ function MenuView:__createView__()
 
 	-- play button
 
-	o = Widgets.newPushButton{
+	o = dUI.newPushButton{
 		id='play-button',
-		view='image',
-		file='assets/buttons/playbtn.png',
-		width=146, height=116,
-		active={
-			file='assets/buttons/playbtn-over.png'
+		labelText="",
+		style=AppUtils.imageButtonStyle{
+			width=146, height=116,
+			file='assets/buttons/playbtn.png',
+			active_file='assets/buttons/playbtn-over.png'
 		}
 	}
 	o.x, o.y = 0,0

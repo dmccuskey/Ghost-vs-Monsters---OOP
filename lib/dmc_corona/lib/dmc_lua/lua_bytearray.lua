@@ -1,7 +1,7 @@
 --====================================================================--
 -- dmc_lua/bytearray.lua
 --
--- Documentation: http://docs.davidmccuskey.com/
+-- Documentation: https://github.com/dmccuskey/lua-bytearray
 --====================================================================--
 
 --[[
@@ -39,7 +39,7 @@ SOFTWARE.
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "0.2.0"
+local VERSION = "0.5.0"
 
 
 
@@ -48,7 +48,7 @@ local VERSION = "0.2.0"
 
 
 local Error = require 'lua_bytearray.exceptions'
-local Objects = require 'lua_objects'
+local Class = require 'lua_class'
 
 local has_pack, PackByteArray = pcall( require, 'lua_bytearray.pack_bytearray' )
 
@@ -58,34 +58,40 @@ local has_pack, PackByteArray = pcall( require, 'lua_bytearray.pack_bytearray' )
 --== Setup, Constants
 
 
--- setup some aliases to make code cleaner
-local newClass = Objects.newClass
-local ObjectBase = Objects.ObjectBase
-local Class = Objects.Class
+local assert = assert
+local iwrite = io.write
+local mceil = math.ceil
+local sbyte = string.byte
+local schar = string.char
+local sfind = string.find
+local sformat = string.format
+local ssub = string.sub
+local tinsert = table.insert
+local type = type
 
-
-local Parents = { Class }
+local Parents = { Class.Class }
 if has_pack then
-	table.insert( Parents, PackByteArray )
+	tinsert( Parents, PackByteArray )
 end
 
-
-local Utils = {}
 
 
 --====================================================================--
 --== Support Functions
 
 
+local Utils = {}
+
+
 -- hexDump()
 -- pretty-print data in hex table
 --
 function Utils.hexDump( buf )
-	for i=1,math.ceil(#buf/16) * 16 do
-		if (i-1) % 16 == 0 then io.write(string.format('%08X  ', i-1)) end
-		io.write( i > #buf and '   ' or string.format('%02X ', buf:byte(i)) )
-		if i %  8 == 0 then io.write(' ') end
-		if i % 16 == 0 then io.write( buf:sub(i-16+1, i):gsub('%c','.'), '\n' ) end
+	for i=1,mceil(#buf/16) * 16 do
+		if (i-1) % 16 == 0 then iwrite(sformat('%08X  ', i-1)) end
+		iwrite( i > #buf and '   ' or sformat('%02X ', buf:byte(i)) )
+		if i %  8 == 0 then iwrite(' ') end
+		if i % 16 == 0 then iwrite( buf:sub(i-16+1, i):gsub('%c','.'), '\n' ) end
 	end
 end
 
@@ -96,7 +102,8 @@ end
 --====================================================================--
 
 
-local ByteArray = newClass( Parents, { name="Byte Array" } )
+local ByteArray = Class.newClass( Parents, { name="Byte Array" } )
+ByteArray.__version = VERSION
 
 
 --======================================================--
@@ -135,7 +142,7 @@ function ByteArray.getBytes( buffer, index, length )
 		idx_end = index + length - 1
 	end
 
-	return string.sub( buffer, index, idx_end )
+	return ssub( buffer, index, idx_end )
 end
 
 function ByteArray.putBytes( buffer, bytes, index )
@@ -156,14 +163,14 @@ function ByteArray.putBytes( buffer, bytes, index )
 	if index == 1 and byte_len >= buf_len then
 		result = bytes
 	elseif index == 1 and byte_len < buf_len then
-		buf_end = string.sub( buffer, byte_len+1 )
+		buf_end = ssub( buffer, byte_len+1 )
 		result = bytes .. buf_end
 	elseif index <= buf_len and buf_len < (index + byte_len) then
-		buf_start = string.sub( buffer, 1, index-1 )
+		buf_start = ssub( buffer, 1, index-1 )
 		result = buf_start .. bytes
 	else
-		buf_start = string.sub( buffer, 1, index-1 )
-		buf_end = string.sub( buffer, index+byte_len )
+		buf_start = ssub( buffer, 1, index-1 )
+		buf_end = ssub( buffer, index+byte_len )
 		result = buf_start .. bytes .. buf_end
 	end
 
@@ -200,7 +207,7 @@ function ByteArray.__getters:position()
 end
 
 function ByteArray.__setters:position( pos )
-	assert( type(pos)=='number', "position value must be integer")
+	assert( type(pos)=='number', "position value must be integer" )
 	assert( pos >= 1 and pos <= self.length + 1 )
 	--==--
 	self._pos = pos
@@ -219,9 +226,9 @@ end
 
 
 function ByteArray:search( str )
-	assert( type(str)=='string', "search value must be string")
+	assert( type(str)=='string', "search value must be string" )
 	--==--
-	return string.find( self._buf, str )
+	return sfind( self._buf, str )
 end
 
 
@@ -243,14 +250,14 @@ end
 
 -- byte is number from 0<>255
 function ByteArray:readByte()
-	return string.byte( self:readChar() )
+	return sbyte( self:readChar() )
 end
 
 function ByteArray:writeByte( byte )
 	assert( type(byte)=='number', "not valid byte" )
 	assert( byte>=0 and byte<=255, "not valid byte" )
 	--==--
-	self:writeChar( string.char(byte) )
+	return self:writeChar( schar(byte) )
 end
 
 
@@ -298,18 +305,18 @@ ByteArray.writeBuf = ByteArray.writeUTFBytes
 
 -- reads bytes FROM us TO array
 -- ba array to read TO
--- length for ba being read from
--- offset for ba being written to
+-- offset for ba being written to (default: its end)
+-- length for us being read from (default: all we have left)
 --
 function ByteArray:readBytes( ba, offset, length )
 	assert( ba and ba:isa(ByteArray), "Need a ByteArray instance" )
 	--==--
-	offset = offset ~= nil and offset or 1
-	length = length ~= nil and length or ba.bytesAvailable
-	if length == 0 then return end
+	offset = offset ~= nil and offset or ba.length + 1
+	length = length ~= nil and length or self.bytesAvailable
 
 	assert( type(offset)=='number', "offset must be a number" )
-	assert( type(length)=='number', "offset must be a number" )
+	assert( type(length)=='number', "length must be a number" )
+	if length == 0 then return self end
 
 	local bytes = self:readUTFBytes( length )
 	ba._buf = ByteArray.putBytes( ba._buf, bytes, offset )
@@ -320,18 +327,18 @@ end
 
 -- write bytes TO us FROM array
 -- ba array to write FROM
--- length for ba being read from
--- offset for ba being written to
+-- offset for us being written to (default: our end)
+-- length for ba being read from (default: all it has left)
 --
 function ByteArray:writeBytes( ba, offset, length )
 	assert( ba and ba:isa(ByteArray), "Need a ByteArray instance" )
 	--==--
-	offset = offset ~= nil and offset or 1
+	offset = offset ~= nil and offset or self.length + 1
 	length = length ~= nil and length or ba.bytesAvailable
-	if length == 0 then return end
 
 	assert( type(offset)=='number', "offset must be a number" )
-	assert( type(length)=='number', "offset must be a number" )
+	assert( type(length)=='number', "length must be a number" )
+	if length == 0 then return self end
 
 	local bytes = ba:readUTFBytes( length )
 	self._buf = ByteArray.putBytes( self._buf, bytes, offset )

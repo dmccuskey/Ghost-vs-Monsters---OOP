@@ -1190,7 +1190,7 @@ function GameView:_enemyEvent_handler( event )
 	if event.type == target.STATE_DEAD then
 		self._enemy_count = self._enemy_count - 1
 
-		local newScore = self._game_score + mCeil( 5000 * event.force )
+		local newScore = self._game_score + mCeil( 5000 * event.data.force )
 		self._game_score = newScore
 
 		self:_removeGameObject( target, true )
@@ -1208,7 +1208,7 @@ function GameView:_pauseOverlayEvent_handler( event )
 
 	if event.type == target.ACTIVE then
 		-- in this sense, "active" means "pause is activated"
-		local pause_is_active = event.is_active
+		local pause_is_active = event.data.is_active
 		self._game_is_active = ( not pause_is_active )
 
 	elseif event.type == target.MENU then

@@ -377,7 +377,7 @@ function Ghost:_gameEngineEvent_handler( event )
 		self:gotoState( Ghost.STATE_AIMING )
 
 	elseif event.type == target.GAME_ACTIVE_EVENT then
-		self._is_animating = event.value
+		self._is_animating = event.data.value
 		self._is_active = value
 
 	end

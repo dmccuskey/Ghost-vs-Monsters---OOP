@@ -43,5 +43,31 @@ end
 
 
 
+--======================================================--
+-- Utils.imageButtonStyle
+
+-- the style for a DMC-Corona-UI button made of two images,
+-- one for each of its states
+--
+-- params: width, height, file, active_file
+--
+function Utils.imageButtonStyle( params )
+	local function background( file )
+		return {
+			type='image',
+			view={ imagePath=file }
+		}
+	end
+	return {
+		width=params.width,
+		height=params.height,
+		inactive={ background=background( params.file ) },
+		active={ background=background( params.active_file ) }
+	}
+end
+
+
+
+
 
 return Utils

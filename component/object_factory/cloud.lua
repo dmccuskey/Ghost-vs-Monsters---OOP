@@ -191,7 +191,7 @@ end
 function Cloud:_gameViewEvent_handler( event )
 	-- print( "Cloud:_gameViewEvent_handler: ", event.type )
 	if event.type == event.target.GAME_ACTIVE_EVENT then
-		self._is_active = event.value
+		self._is_active = event.data.value
 	-- else
 	-- 	print( "[WARNING] Cloud::_gameViewEvent_handler", event.type )
 	end

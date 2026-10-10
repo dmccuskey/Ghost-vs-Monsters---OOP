@@ -8,3 +8,6 @@ Thumbs.db
 #lib/dmc_widgets
 #lib/dmc_widgets.lua
 #dmc_corona_boot.lua
+
+# hide any generated files from Snakemake
+.snakemake
