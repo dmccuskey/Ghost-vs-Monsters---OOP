@@ -151,7 +151,7 @@ function ButtonBase:__init__( params )
 	-- print( "ButtonBase:__init__", params )
 	params = params or {}
 	if params.id==nil then params.id="" end
-	if params.labelText==nil then params.labelText="OK" end
+	if params.labelText==nil then params.labelText="" end
 
 	self:superCall( '__init__', params )
 	--==--
