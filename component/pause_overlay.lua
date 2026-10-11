@@ -147,7 +147,6 @@ function PauseOverlay:__createView__()
 
 	o = dUI.newPushButton{
 		id='menu-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=44, height=44,
 			file='assets/buttons/pausemenubtn.png',
@@ -163,7 +162,6 @@ function PauseOverlay:__createView__()
 
 	o = dUI.newToggleButton{
 		id='pause-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=44, height=44,
 			file='assets/buttons/pausebtn.png',

@@ -159,7 +159,6 @@ function LevelOverlay:__createView__()
 	tmp = self._bg
 	o = dUI.newPushButton{
 		id='level-1-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=114, height=114,
 			file='assets/buttons/level1btn.png',
@@ -177,7 +176,6 @@ function LevelOverlay:__createView__()
 	tmp = self._bg
 	o = dUI.newPushButton{
 		id='level-2-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=114, height=114,
 			file='assets/buttons/level2btn.png',
@@ -195,7 +193,6 @@ function LevelOverlay:__createView__()
 	tmp = self._bg
 	o = dUI.newPushButton{
 		id='close-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=44, height=44,
 			file='assets/buttons/closebtn.png',

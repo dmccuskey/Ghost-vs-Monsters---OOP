@@ -181,7 +181,6 @@ function GameOver:__createView__()
 
 	o = dUI.newPushButton{
 		id='feint-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=168, height=40,
 			file='assets/buttons/openfeintbtn.png',
@@ -197,7 +196,6 @@ function GameOver:__createView__()
 
 	o = dUI.newPushButton{
 		id='facebook-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=302, height=40,
 			file='assets/buttons/facebookbtn.png',
@@ -228,7 +226,6 @@ function GameOver:__createView__()
 
 	o = dUI.newPushButton{
 		id='menu-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=60, height=60,
 			file='assets/buttons/menubtn.png',
@@ -244,7 +241,6 @@ function GameOver:__createView__()
 
 	o = dUI.newPushButton{
 		id='replay-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=60, height=60,
 			file='assets/buttons/restartbtn.png',
@@ -260,7 +256,6 @@ function GameOver:__createView__()
 
 	o = dUI.newPushButton{
 		id='next-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=60, height=60,
 			file='assets/buttons/nextlevelbtn.png',

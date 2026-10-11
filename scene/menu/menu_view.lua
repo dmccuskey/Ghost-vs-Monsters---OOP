@@ -189,7 +189,6 @@ function MenuView:__createView__()
 
 	o = dUI.newPushButton{
 		id='feint-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=118, height=88,
 			file='assets/buttons/menuofbtn.png',
@@ -206,7 +205,6 @@ function MenuView:__createView__()
 
 	o = dUI.newPushButton{
 		id='play-button',
-		labelText="",
 		style=AppUtils.imageButtonStyle{
 			width=146, height=116,
 			file='assets/buttons/playbtn.png',
