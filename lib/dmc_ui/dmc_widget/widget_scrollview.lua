@@ -176,7 +176,7 @@ function ScrollView:__init__( params )
 	-- print( "ScrollView:__init__", params )
 	params = params or {}
 	if params.bounceIsActive==nil then params.bounceIsActive=true end
-	if params.decelerateTransitionTime==nil then params.decelerateTransitionTime=uiConst.SCROLLVIEW_DECELERATE_TIME end
+	if params.decelerationRate==nil then params.decelerationRate=uiConst.AXIS_DECELERATION_RATE end
 	if params.horizontalScrollEnabled==nil then params.horizontalScrollEnabled=true end
 	if params.isPagingEnabled==nil then params.isPagingEnabled=false end
 	if params.lowerHorizontalOffset==nil then params.lowerHorizontalOffset = 0 end
@@ -374,7 +374,7 @@ function ScrollView:__initComplete__()
 	-- no zoomScale option: the view to zoom is added after creation,
 	-- use setZoomScale() then
 
-	self.decelerateTransitionTime = tmp.decelerateTransitionTime
+	self.decelerationRate = tmp.decelerationRate
 	self.isPagingEnabled = tmp.isPagingEnabled
 
 	self.horizontalScrollEnabled = tmp.horizontalScrollEnabled
@@ -543,14 +543,15 @@ function ScrollView.__setters:bounceIsActive( value )
 	self._axisY.bounceIsActive = value
 end
 
-function ScrollView.__getters:decelerateTransitionTime()
-	-- print( "ScrollView.__getters:decelerateTransitionTime" )
-	return self._axisX.decelerateTransitionTime
+-- the part of its speed which a glide keeps after each millisecond
+function ScrollView.__getters:decelerationRate()
+	-- print( "ScrollView.__getters:decelerationRate" )
+	return self._axisX.decelerationRate
 end
-function ScrollView.__setters:decelerateTransitionTime( value )
-	-- print( "ScrollView.__setters:decelerateTransitionTime", value )
-	self._axisX.decelerateTransitionTime = value
-	self._axisY.decelerateTransitionTime = value
+function ScrollView.__setters:decelerationRate( value )
+	-- print( "ScrollView.__setters:decelerationRate", value )
+	self._axisX.decelerationRate = value
+	self._axisY.decelerationRate = value
 end
 
 --== .delegate

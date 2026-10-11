@@ -39,7 +39,7 @@ SOFTWARE.
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "0.1.0"
+local VERSION = "0.2.0"
 
 
 
@@ -82,9 +82,10 @@ local ObjectBase = Objects.ObjectBase
 
 local mabs = math.abs
 local mceil = math.ceil
+local mexp = math.exp
 local mfloor = math.floor
+local mlog = math.log
 local sfmt = string.format
-local tinsert = table.insert
 local tremove = table.remove
 local tstr = tostring
 
@@ -105,10 +106,25 @@ AxisMotion.HIT_UPPER_LIMIT = 'upper-limit-hit'
 AxisMotion.HIT_LOWER_LIMIT = 'lower-limit-hit'
 AxisMotion.HIT_SIZE_LIMIT = 'size-limit-hit'
 
-AxisMotion.SCROLLBACK_FACTOR = 1/3
-
-AxisMotion.VELOCITY_STACK_LENGTH = uiConst.AXIS_VELOCITY_STACK_LENGTH
+-- the fastest scrollToPosition() goes with 'limitIsActive'
 AxisMotion.VELOCITY_LIMIT = uiConst.AXIS_VELOCITY_LIMIT
+
+-- the speed of a touch (pixels per millisecond): the fastest it counts
+-- for, the time over which it is measured, and the speed below which
+-- a glide stops
+AxisMotion.TOUCH_VELOCITY_LIMIT = uiConst.AXIS_TOUCH_VELOCITY_LIMIT
+AxisMotion.TOUCH_VELOCITY_WINDOW = uiConst.AXIS_TOUCH_VELOCITY_WINDOW
+AxisMotion.MIN_VELOCITY = uiConst.AXIS_MIN_VELOCITY
+
+-- a drag past an edge: the part of the finger's travel which the
+-- content follows at the edge (less the further it goes), and the
+-- furthest it can go, as a part of the length of the view
+AxisMotion.RUBBER_BAND_FACTOR = uiConst.AXIS_RUBBER_BAND_FACTOR
+AxisMotion.RUBBER_BAND_LIMIT = uiConst.AXIS_RUBBER_BAND_LIMIT
+
+-- the spring which brings the content back to an edge: its
+-- angular frequency, per millisecond (critically damped)
+AxisMotion.SPRING_FREQUENCY = uiConst.AXIS_SPRING_FREQUENCY
 
 -- with paging, the speed (pixels per millisecond) at the end of
 -- a touch from which it is a flick, which goes to the next page
@@ -129,7 +145,6 @@ AxisMotion.STATE_CREATE = 'state_create'
 AxisMotion.STATE_AT_REST = 'state_at_rest'
 AxisMotion.STATE_DECELERATE = 'state_decelerate'
 AxisMotion.STATE_RESTORE = 'state_restore'
-AxisMotion.STATE_RESTRAINT = 'state_restraint'
 AxisMotion.STATE_TOUCH = 'state_touch'
 
 --== Event Constants
@@ -146,14 +161,12 @@ function AxisMotion:__init__( params )
 	params = params or {}
 	if params.bounceIsActive==nil then params.bounceIsActive=true end
 	if params.autoAlign==nil then params.autoAlign=AxisMotion.MIDDLE end
-	if params.decelerateTransitionTime==nil then params.decelerateTransitionTime=uiConst.AXIS_DECELERATE_TIME end
+	if params.decelerationRate==nil then params.decelerationRate=uiConst.AXIS_DECELERATION_RATE end
 	if params.restoreTransitionTime==nil then params.restoreTransitionTime=uiConst.AXIS_RESTORE_TIME end
-	if params.restraintTransitionTime==nil then params.restraintTransitionTime=uiConst.AXIS_RESTRAINT_TIME end
 	if params.scrollToTransitionTime==nil then params.scrollToTransitionTime=uiConst.AXIS_SCROLLTO_TIME end
 	if params.length==nil then params.length=0 end
 	if params.lowerOffset==nil then params.lowerOffset=0 end
 	if params.pagingIsEnabled==nil then params.pagingIsEnabled=false end
-	if params.scrollbackFactor==nil then params.scrollbackFactor=AxisMotion.SCROLLBACK_FACTOR end
 	if params.scrollIsEnabled==nil then params.scrollIsEnabled=true end
 	if params.scrollLength==nil then params.scrollLength=0 end
 	if params.upperOffset==nil then params.upperOffset=0 end
@@ -173,9 +186,8 @@ function AxisMotion:__init__( params )
 
 	self._autoAlign = nil
 
-	self._decelTransTime = 0
+	self._decelRate = 0
 	self._restoreTransTime = 0
-	self._restraintTransTime = 0
 	self._scrollToTransTime = 0
 
 	-- value is current position, eg x/y
@@ -196,9 +208,6 @@ function AxisMotion:__init__( params )
 	self._lowerOffset = 0
 	self._upperOffset = 0
 
-	self._scrollbackFactor = 0
-	self._scrollbackLimit = 0
-
 	-- block to make sure had a proper start
 	-- to touch events, eg 'began'
 	self._didBegin = false
@@ -208,13 +217,20 @@ function AxisMotion:__init__( params )
 	-- eg, HIT_UPPER_LIMIT, HIT_LOWER_LIMIT, etc
 	self._scrollLimit = nil
 
+	-- a drag past an edge: the position the last move gave,
+	-- and where the finger was for it. see _constrainPosition()
+	self._bandValue = nil
+	self._bandTouch = nil
+
 	-- previous Touch Event, used for calculating deltas
 	self._tmpTouchEvt = nil
 
 	-- previous enterFrame event, used for calculating deltas
 	self._tmpFrameEvent = nil
 
-	self._velocityStack = {0,0}
+	-- the positions of the touch in progress, each { time=, value= },
+	-- over TOUCH_VELOCITY_WINDOW: its speed comes from them
+	self._touchSamples = {}
 	self._velocity = { value=0, vector=0 }
 
 	self._enterFrameIterator = nil
@@ -245,13 +261,11 @@ function AxisMotion:__initComplete__()
 	self.alignment = tmp.alignment
 	self.autoAlign = tmp.autoAlign
 	self.bounceIsActive = tmp.bounceIsActive
-	self.decelerateTransitionTime = tmp.decelerateTransitionTime
+	self.decelerationRate = tmp.decelerationRate
 	self.length = tmp.length
 	self.lowerOffset = tmp.lowerOffset
 	self.pagingIsEnabled = tmp.pagingIsEnabled
 	self.restoreTransitionTime = tmp.restoreTransitionTime
-	self.restraintTransitionTime = tmp.restraintTransitionTime
-	self.scrollbackFactor = tmp.scrollbackFactor
 	self.scrollIsEnabled = tmp.scrollIsEnabled
 	self.scrollLength = tmp.scrollLength
 	self.scrollToTransitionTime = tmp.scrollToTransitionTime
@@ -309,13 +323,14 @@ function AxisMotion.__setters:bounceIsActive( value )
 end
 
 
-function AxisMotion.__getters:decelerateTransitionTime()
-	return self._decelTransTime
+-- the part of its speed a glide keeps after each millisecond
+function AxisMotion.__getters:decelerationRate()
+	return self._decelRate
 end
-function AxisMotion.__setters:decelerateTransitionTime( value )
-	assert( type(value)=='number' and value > 0, "ERROR: AxisMotion.decelerateTransitionTime expected number", value )
+function AxisMotion.__setters:decelerationRate( value )
+	assert( type(value)=='number' and value > 0 and value < 1, "ERROR: AxisMotion.decelerationRate expected number between 0 and 1" )
 	--==--
-	self._decelTransTime = value
+	self._decelRate = value
 end
 
 
@@ -327,7 +342,6 @@ function AxisMotion.__setters:length( value )
 	assert( type(value)=='number' and value > 0 )
 	--==--
 	self._length = value
-	self:_setScrollbackLimit()
 	self:_checkScaledPosition()
 end
 
@@ -362,6 +376,7 @@ function AxisMotion.__setters:pagingIsEnabled( value )
 end
 
 
+-- how long the slide to a page takes (paging)
 function AxisMotion.__getters:restoreTransitionTime()
 	return self._restoreTransTime
 end
@@ -370,16 +385,6 @@ function AxisMotion.__setters:restoreTransitionTime( value )
 	--==--
 	self._restoreTransTime = value
 end
-
-function AxisMotion.__getters:restraintTransitionTime()
-	return self._restraintTransTime
-end
-function AxisMotion.__setters:restraintTransitionTime( value )
-	assert( type(value)=='number' and value > 0, "ERROR: AxisMotion.restraintTransitionTime expected number", value )
-	--==--
-	self._restraintTransTime = value
-end
-
 
 
 function AxisMotion.__setters:scale( value )
@@ -391,13 +396,6 @@ function AxisMotion.__setters:scale( value )
 		self._value = self._tmpTouchEvt.value - refPoint*value
 	end
 	self:_checkScaledPosition()
-end
-
-
--- decimal fraction (1/3)
-function AxisMotion.__setters:scrollbackFactor( value )
-	self._scrollbackFactor = value
-	self:_setScrollbackLimit()
 end
 
 
@@ -522,13 +520,6 @@ end
 
 --====================================================================--
 --== Private Methods
-
-
--- set how far table can be scrolled against a boundary limit
---
-function AxisMotion:_setScrollbackLimit()
-	self._scrollbackLimit = self._length * self._scrollbackFactor
-end
 
 
 -- the position to rest at: inside the scroll limits, without the
@@ -681,16 +672,36 @@ function AxisMotion:_checkScrollBounds( value )
 end
 
 
--- ensure position stays within boundaries
+-- how far the content is past an edge when the finger has
+-- travelled 'distance' past it, and the reverse. the content follows
+-- by RUBBER_BAND_FACTOR at the edge and less the further it goes,
+-- never further than RUBBER_BAND_LIMIT of the view (UIScrollView's
+-- curve, which lets it go as far as the whole view)
+--
+function AxisMotion:_rubberBand( distance )
+	local limit = self._length * AxisMotion.RUBBER_BAND_LIMIT
+	local d = distance * AxisMotion.RUBBER_BAND_FACTOR
+	if limit<=0 then return 0 end
+	return d*limit / ( d+limit )
+end
+
+function AxisMotion:_rubberBandTravel( offset )
+	local limit = self._length * AxisMotion.RUBBER_BAND_LIMIT
+	if limit<=0 then return 0 end
+	-- the spring can carry the content further than a finger could
+	local MAX = limit*0.95
+	if offset > MAX then offset = MAX end
+	return offset*limit / ( AxisMotion.RUBBER_BAND_FACTOR * ( limit-offset ) )
+end
+
+
+-- ensure position stays within boundaries: the position after
+-- the finger has moved by 'delta'
 --
 function AxisMotion:_constrainPosition( value, delta )
-	if self._id=='y' then
-		-- print( "AxisMotion:_constrainPosition", value, delta )
-	end
-
+	-- print( "AxisMotion:_constrainPosition", value, delta )
 	local isBounceActive = self._bounceIsActive
-	local LIMIT = self._scrollbackLimit
-	local scrollLimit, newVal, calcs, s, factor
+	local scrollLimit, newVal, calcs
 
 	newVal = value + delta
 	calcs = self:_checkScrollBounds( newVal )
@@ -708,77 +719,94 @@ function AxisMotion:_constrainPosition( value, delta )
 			newVal = 0
 		end
 
-	elseif scrollLimit==AxisMotion.HIT_UPPER_LIMIT then
-		if not isBounceActive then
-			newVal=calcs.min
-		else
-			s = newVal-self._upperOffset
-			factor = 1 - (s/LIMIT)
-			if factor < 0 then factor = 0 end
-			newVal = value + ( delta * factor )
-			-- check bounds again
-			self:_checkScrollBounds( newVal )
+	elseif not self._scrollEnabled then
+		-- no limits to check
+
+	else
+		local upper, lower = calcs.min, calcs.max
+		-- where the finger is: past an edge it is ahead of the content.
+		-- known from the last move, or else worked out from the content
+		local touch = value
+		if value==self._bandValue then
+			touch = self._bandTouch
+		elseif value > upper then
+			touch = upper + self:_rubberBandTravel( value-upper )
+		elseif value < lower then
+			touch = lower - self:_rubberBandTravel( lower-value )
 		end
+		touch = touch + delta
 
-	elseif scrollLimit==AxisMotion.HIT_LOWER_LIMIT then
-		if not isBounceActive then
-			newVal=calcs.max
+		if touch > upper then
+			newVal = isBounceActive and upper + self:_rubberBand( touch-upper ) or upper
+		elseif touch < lower then
+			newVal = isBounceActive and lower - self:_rubberBand( lower-touch ) or lower
 		else
-			s = (self._length - self._scaledScrollLength) - newVal - self._lowerOffset
-			factor = 1 - (s/LIMIT)
-			if factor < 0 then factor = 0 end
-			newVal = value + ( delta * factor )
-			-- check bounds again
-			self:_checkScrollBounds( newVal )
+			newVal = touch
 		end
+		-- without bounce the finger's way past an edge is forgotten
+		self._bandValue, self._bandTouch = newVal, isBounceActive and touch or newVal
+		-- check bounds again
+		self:_checkScrollBounds( newVal )
 
-	end
-
-	if self._id=='y' then
-		-- print( "constain", self._scrollLimit )
 	end
 
 	return newVal
 end
 
 
--- clamp max velocity, calculate average velocity
+-- the speed of the touch at 'time', from its positions over
+-- the last TOUCH_VELOCITY_WINDOW, in its last direction: a finger which
+-- rests loses it.
+-- 'value' is a new position, if there is one
 --
-function AxisMotion:_updateVelocity( value )
-	-- print( "AxisMotion:_updateVelocity", value )
-	local VEL_STACK_LENGTH = AxisMotion.VELOCITY_STACK_LENGTH
-	local LIMIT = AxisMotion.VELOCITY_LIMIT
-	local _mabs = mabs
-	local velStack = self._velocityStack
-	local vel = self._velocity
-	local vector, aveVel = 0,0
+function AxisMotion:_updateVelocity( time, value )
+	-- print( "AxisMotion:_updateVelocity", time, value )
+	local LIMIT = AxisMotion.TOUCH_VELOCITY_LIMIT
+	local samples = self._touchSamples
+	local first, last, deltaT, velocity
 
-	if _mabs(value) > LIMIT then
-		-- clamp velocity
-		vector = (value>=0) and 1 or -1
-		value = LIMIT*vector
-	end
-
-	tinsert( velStack, 1, value )
-
-	for i = #velStack, 1, -1 do
-		-- calculate average velocity and
-		-- clean off velocity stack at same time
-		if i > VEL_STACK_LENGTH then
-			tremove( velStack, i )
-		else
-			aveVel = aveVel + velStack[i]
+	if value~=nil then
+		-- a touch which turns back is measured from where it turned
+		local n = #samples
+		if n > 1 and ( samples[n].value-samples[n-1].value ) * ( value-samples[n].value ) < 0 then
+			samples = { samples[n] }
+			self._touchSamples = samples
 		end
+		samples[ #samples+1 ] = { time=time, value=value }
 	end
-	aveVel = aveVel / #velStack
+	-- keep the newest one, to measure from once the others are too old
+	while #samples > 1 and samples[1].time < time-AxisMotion.TOUCH_VELOCITY_WINDOW do
+		tremove( samples, 1 )
+	end
 
-	vel.value = _mabs( aveVel )
-	if aveVel~=0 then
-		vel.vector = (aveVel>0) and -1 or 1
+	first, last = samples[1], samples[#samples]
+	if first==nil then return end
+	deltaT = time - first.time
+	-- two events at the same time say nothing about speed
+	if deltaT <= 0 then return end
+
+	velocity = ( last.value-first.value ) / deltaT
+	if velocity > LIMIT then
+		velocity = LIMIT
+	elseif velocity < -LIMIT then
+		velocity = -LIMIT
+	end
+	self:_setVelocity( velocity )
+end
+
+
+-- 'velocity' has a direction: positive while the position grows
+--
+function AxisMotion:_setVelocity( velocity )
+	local vel = self._velocity
+	vel.value = mabs( velocity )
+	if velocity > 0 then
+		vel.vector = 1
+	elseif velocity < 0 then
+		vel.vector = -1
 	else
 		vel.vector = 0
 	end
-
 end
 
 
@@ -843,10 +871,9 @@ function AxisMotion:touch( event )
 	if phase=='began' then
 		local vel = self._velocity
 
-		-- @TODO, probably check to see state we're in
+		-- a new touch starts without the speed of the last one
 		vel.value, vel.vector = 0, 0
-		-- a new touch starts without the speeds of the last one
-		self._velocityStack = { 0 }
+		self._touchSamples = { { time=evt.time, value=self._value } }
 
 		-- get our initial reference point
 		self._refPoint = (evt.value - self._value)/self._scale
@@ -867,7 +894,6 @@ function AxisMotion:touch( event )
 		local constrain = AxisMotion._constrainPosition
 
 		local deltaVal = evt.value - tmpTouchEvt.value
-		local deltaT = evt.time - tmpTouchEvt.time
 		local oldVal, newVal
 
 		self._isMoving = true
@@ -876,7 +902,7 @@ function AxisMotion:touch( event )
 
 		oldVal = self._value
 		newVal = constrain( self, oldVal, deltaVal )
-		self:_updateVelocity( (oldVal-newVal)/deltaT )
+		self:_updateVelocity( evt.time, newVal )
 
 		self._value = newVal
 		self._tmpTouchEvt = evt
@@ -886,6 +912,7 @@ function AxisMotion:touch( event )
 		self._tmpTouchEvt = evt
 		self._didBegin = false
 		self._refPoint = nil
+		self:_updateVelocity( evt.time )
 
 		local next_state, next_params = self:_getNextState{ event=evt }
 		self:gotoState( next_state, next_params )
@@ -904,10 +931,12 @@ function AxisMotion:_getNextState( params )
 	-- print( "AxisMotion:_getNextState" )
 	params = params or {}
 	--==--
-	local scrollLimit = self._scrollLimit
 	local velocity = self._velocity
 	local isBounceActive = self._bounceIsActive
 	local s, p -- state, params
+
+	self:_checkScrollBounds( self._value )
+	local scrollLimit = self._scrollLimit -- after check bounds
 
 	-- print( "gNS>>", velocity.value, scrollLimit, isBounceActive )
 
@@ -926,16 +955,13 @@ function AxisMotion:_getNextState( params )
 			p = { event=params.event, offset=pagePos }
 		end
 
-	elseif velocity.value > 0 and not scrollLimit then
-		s = AxisMotion.STATE_DECELERATE
-		p = { event=params.event }
-
-	elseif velocity.value <= 0 and scrollLimit and isBounceActive then
+	elseif scrollLimit and isBounceActive then
+		-- past an edge, with or without speed: the spring takes it
 		s = AxisMotion.STATE_RESTORE
 		p = { event=params.event }
 
-	elseif velocity.value > 0 and scrollLimit and isBounceActive then
-		s = AxisMotion.STATE_RESTRAINT
+	elseif velocity.value >= AxisMotion.MIN_VELOCITY and not scrollLimit then
+		s = AxisMotion.STATE_DECELERATE
 		p = { event=params.event }
 
 	else
@@ -1012,7 +1038,8 @@ function AxisMotion:do_state_touch( params )
 
 	local enterFrameFunc1 = function( e )
 		-- print( "enterFrameFunc: enterFrameFunc1 state touch " )
-		self:_updateVelocity( 0 )
+		-- a finger which rests loses its speed
+		self:_updateVelocity( e.time )
 	end
 
 	-- start animation
@@ -1032,9 +1059,6 @@ function AxisMotion:state_touch( next_state, params )
 	if next_state == AxisMotion.STATE_RESTORE then
 		self:do_state_restore( params )
 
-	elseif next_state == AxisMotion.STATE_RESTRAINT then
-		self:do_state_restraint( params )
-
 	elseif next_state == AxisMotion.STATE_AT_REST then
 		self:do_state_at_rest( params )
 
@@ -1050,50 +1074,65 @@ end
 
 --== State Decelerate
 
+-- a glide: after a touch which ended with speed, the content goes on
+-- and loses a constant part of its speed with each millisecond
+-- (decelerationRate), so a faster flick goes further and for longer
+--
 function AxisMotion:do_state_decelerate( params )
 	-- print( "AxisMotion:do_state_decelerate" )
 	params = params or {}
 	--==--
-	local TIME = self._decelTransTime
-	local constrain = AxisMotion._constrainPosition
-	local ease_f = easingx.easeOutQuad
-	local _mabs = mabs
+	local MIN_VELOCITY = AxisMotion.MIN_VELOCITY
+	-- the speed is v0*rate^t, written as v0*e^(-k*t)
+	local k = -mlog( self._decelRate )
 
+	-- startEvt could be Touch or enterFrame event
+	-- of importance is the 'time' param
 	local startEvt = params.event
 	local vel = self._velocity
-	local velocity = vel.value
-	local deltaVel = -velocity
+	local velocity = vel.value * vel.vector
+	local val = self._value
 
 	self._isMoving = true
 
 	local enterFrameFunc = function( e )
 		-- print( "AxisMotion: enterFrameFunc: do_state_decelerate" )
 
-		local frameEvt = self._tmpFrameEvent or startEvt -- none yet: ended in the frame it began
-		local scrollLimit = self._scrollLimit
-
-		local deltaStart = e.time - startEvt.time
-		local deltaFrame = e.time - frameEvt.time
-		local deltaVal, oldVal, newVal
+		local deltaT = e.time - startEvt.time
+		if deltaT < 0 then deltaT = 0 end
 
 		--== Calculation
 
-		vel.value = ease_f( deltaStart, TIME, velocity, deltaVel )
-		deltaVal = vel.value * vel.vector * deltaFrame
+		local decay = mexp( -k*deltaT )
+		local newVel = velocity * decay
+		local newVal = val + velocity * ( 1-decay ) / k
+		local calcs = self:_checkScrollBounds( newVal )
+		local scrollLimit = self._scrollLimit -- after check bounds
 
 		--== Action
 
-		oldVal = self._value
-		newVal = constrain( self, oldVal, deltaVal )
-		self._value = newVal
+		self:_setVelocity( newVel )
 
-		if vel.value > 0 and scrollLimit then
-			-- hit edge while moving
-			self:gotoState( AxisMotion.STATE_RESTRAINT, { event=e } )
+		if scrollLimit and self._bounceIsActive then
+			-- crossed an edge while moving: the spring takes its speed
+			self._value = newVal
+			self:gotoState( AxisMotion.STATE_RESTORE, { event=e } )
 
-		elseif deltaStart >= TIME or _mabs( newVal-oldVal ) < 1 then
-			-- over time or movement too small to see (pixel)
+		elseif scrollLimit==AxisMotion.HIT_UPPER_LIMIT then
+			self._value = calcs.min
 			self:gotoState( AxisMotion.STATE_AT_REST )
+
+		elseif scrollLimit==AxisMotion.HIT_LOWER_LIMIT then
+			self._value = calcs.max
+			self:gotoState( AxisMotion.STATE_AT_REST )
+
+		elseif scrollLimit or vel.value < MIN_VELOCITY then
+			-- too slow to see
+			self._value = newVal
+			self:gotoState( AxisMotion.STATE_AT_REST )
+
+		else
+			self._value = newVal
 
 		end
 
@@ -1120,8 +1159,8 @@ function AxisMotion:state_decelerate( next_state, params )
 	elseif next_state == self.STATE_AT_REST then
 		self:do_state_at_rest( params )
 
-	elseif next_state == self.STATE_RESTRAINT then
-		self:do_state_restraint( params )
+	elseif next_state == self.STATE_RESTORE then
+		self:do_state_restore( params )
 
 	else
 		pwarn( sfmt( "AxisMotion:state_decelerate unknown state transition '%s'", tstr( next_state )))
@@ -1132,39 +1171,49 @@ end
 
 --== State Restore
 
+-- back to where the content rests: to an edge it is past, by
+-- a spring, or to a page, as a timed slide (params.offset)
+--
 function AxisMotion:do_state_restore( params )
 	-- print( "AxisMotion:do_state_restore" )
 	params = params or {}
 	--==--
-	local TIME = self._restoreTransTime
-	local constrain = AxisMotion._constrainPosition
-	local ease_f = easingx.easeOut
-
-	local startEvt = params.event
-	local val = self._value
-	local vel = self._velocity
-
-	local delta, offset
-
-	-- calculate restore distance
-	local scrollLimit = self._scrollLimit
+	local enterFrameFunc
 	if params.offset~=nil then
-		-- paging: the position of a page
-		offset = params.offset
-		vel.value, vel.vector = 0, 0
-	elseif scrollLimit == AxisMotion.HIT_SIZE_LIMIT then
-		offset = constrain( self, val, 0 )
-	elseif scrollLimit == AxisMotion.HIT_UPPER_LIMIT then
-		offset = self._upperOffset
+		enterFrameFunc = self:_getPageIterator( params )
 	else
-		offset = (self._length - self._scaledScrollLength - self._lowerOffset)
+		enterFrameFunc = self:_getSpringIterator( params )
 	end
-	delta = offset-val
 
 	self._isMoving = true
 
-	local enterFrameFunc = function( e )
-		-- print( "AxisMotion: enterFrameFunc: do_state_restore " )
+	-- start animation
+
+	if self._enterFrameIterator == nil then
+		Runtime:addEventListener( 'enterFrame', self )
+	end
+	self._enterFrameIterator = enterFrameFunc
+
+	-- set current state
+	self:setState( AxisMotion.STATE_RESTORE )
+end
+
+-- paging: slide to the position of a page
+--
+function AxisMotion:_getPageIterator( params )
+	local TIME = self._restoreTransTime
+	local ease_f = easingx.easeOut
+
+	local startEvt = params.event
+	local offset = params.offset
+	local val = self._value
+	local vel = self._velocity
+	local delta = offset-val
+
+	vel.value, vel.vector = 0, 0
+
+	return function( e )
+		-- print( "AxisMotion: enterFrameFunc: do_state_restore, page" )
 
 		--== Calculation
 
@@ -1180,16 +1229,79 @@ function AxisMotion:do_state_restore( params )
 			self:gotoState( AxisMotion.STATE_AT_REST )
 		end
 	end
+end
 
-	-- start animation
+-- a critically damped spring, from where the content is and with the
+-- speed it has, to the edge it is past. with x the distance past the
+-- edge, v0 the speed and w the spring's frequency:
+--   x(t) = ( x0 + (v0 + w*x0)*t ) * e^(-w*t)
+-- one motion without a halt: a faster arrival overruns the edge by
+-- more (v0/(e*w), at t=1/w) and takes about as long to settle; without
+-- speed (let go of past the edge) it only comes back
+--
+function AxisMotion:_getSpringIterator( params )
+	local W = AxisMotion.SPRING_FREQUENCY
+	local MIN_VELOCITY = AxisMotion.MIN_VELOCITY
+	local constrain = AxisMotion._constrainPosition
 
-	if self._enterFrameIterator == nil then
-		Runtime:addEventListener( 'enterFrame', self )
+	-- startEvt could be Touch or enterFrame event
+	-- of importance is the 'time' param
+	local startEvt = params.event
+	local val = self._value
+	local vel = self._velocity
+	local velocity = vel.value * vel.vector
+	local offset
+
+	self:_checkScrollBounds( val )
+	local scrollLimit = self._scrollLimit
+	if scrollLimit == AxisMotion.HIT_UPPER_LIMIT then
+		offset = self._upperOffset
+	elseif scrollLimit == AxisMotion.HIT_LOWER_LIMIT then
+		offset = (self._length - self._scaledScrollLength - self._lowerOffset)
+	else
+		-- content shorter than the view: to its alignment
+		offset = constrain( self, val, 0 )
+		velocity = 0
 	end
-	self._enterFrameIterator = enterFrameFunc
 
-	-- set current state
-	self:setState( AxisMotion.STATE_RESTORE )
+	local x0 = val - offset
+	local b = velocity + W*x0
+
+	return function( e )
+		-- print( "AxisMotion: enterFrameFunc: do_state_restore, spring" )
+
+		local deltaT = e.time - startEvt.time
+		if deltaT < 0 then deltaT = 0 end
+
+		--== Calculation
+
+		local decay = mexp( -W*deltaT )
+		local x = ( x0 + b*deltaT ) * decay
+		local newVel = ( b - W*( x0 + b*deltaT ) ) * decay
+
+		--== Action
+
+		self:_setVelocity( newVel )
+
+		if x*x0 < 0 then
+			-- let go while moving back fast enough to pass the edge:
+			-- the content goes on from there, as after a flick
+			self._value = offset
+			self:_checkScrollBounds( offset )
+			self:gotoState( AxisMotion.STATE_DECELERATE, { event=e } )
+
+		elseif mabs( x ) < 0.5 and vel.value < MIN_VELOCITY then
+			-- too near and too slow to see
+			self._value = offset
+			self:_checkScrollBounds( offset )
+			self:gotoState( AxisMotion.STATE_AT_REST )
+
+		else
+			self._value = offset + x
+			self:_checkScrollBounds( offset + x )
+
+		end
+	end
 end
 
 function AxisMotion:state_restore( next_state, params )
@@ -1201,91 +1313,14 @@ function AxisMotion:state_restore( next_state, params )
 	elseif next_state == AxisMotion.STATE_AT_REST then
 		self:do_state_at_rest( params )
 
+	elseif next_state == AxisMotion.STATE_DECELERATE then
+		self:do_state_decelerate( params )
+
 	else
 		pwarn( sfmt( "AxisMotion:state_restore unknown state transition '%s'", tstr( next_state )))
 	end
 
 end
-
-
---== State Restraint
-
--- when object has velocity and hit limit
--- we constrain its motion away from limit
---
-function AxisMotion:do_state_restraint( params )
-	-- print( "AxisMotion:do_state_restraint" )
-	params = params or {}
-	--==--
-	local TIME = self._restraintTransTime
-	local constrain = AxisMotion._constrainPosition
-	local ease_f = easingx.easeOut
-	local _mabs = mabs
-
-	-- startEvt could be Touch or enterFrame event
-	-- of importance is the 'time' param
-	local startEvt = params.event
-
-	local vel = self._velocity
-	local velocity = vel.value * vel.vector
-	local deltaVel = -velocity
-
-	self._isMoving = true
-
-	local enterFrameFunc = function( e )
-		-- print( "AxisMotion: enterFrameFunc: do_state_restraint" )
-
-		local frameEvt = self._tmpFrameEvent or startEvt -- none yet: ended in the frame it began
-
-		local deltaStart = e.time - startEvt.time -- total
-		local deltaFrame = e.time - frameEvt.time
-		local deltaVal, oldVal, newVal
-
-		--== Calculation
-
-		vel.value = ease_f( deltaStart, TIME, velocity, deltaVel )
-		deltaVal = vel.value * deltaFrame
-
-		--== Action
-
-		oldVal = self._value
-		newVal = constrain( self, oldVal, deltaVal )
-		self._value = newVal
-
-		if deltaStart >= TIME or _mabs( newVal-oldVal ) < 1 then
-			vel.value, vel.vector = 0, 0
-			self:gotoState( AxisMotion.STATE_RESTORE, { event=e } )
-
-		end
-
-	end
-
-	-- start animation
-
-	if self._enterFrameIterator == nil then
-		Runtime:addEventListener( 'enterFrame', self )
-	end
-	self._enterFrameIterator = enterFrameFunc
-
-	-- set current state
-	self:setState( AxisMotion.STATE_RESTRAINT )
-end
-
-function AxisMotion:state_restraint( next_state, params )
-	-- print( "AxisMotion:state_restraint: >> ", next_state )
-
-	if next_state == self.STATE_TOUCH then
-		self:do_state_touch( params )
-
-	elseif next_state == self.STATE_RESTORE then
-		self:do_state_restore( params )
-
-	else
-		pwarn( sfmt( "AxisMotion:state_restraint unknown state transition '%s'", tstr( next_state )))
-	end
-
-end
-
 
 
 
