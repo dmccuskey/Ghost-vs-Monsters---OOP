@@ -158,17 +158,32 @@ Constant.DEFAULT_BACKGROUND_TYPE = Constant.ROUNDED
 --======================================================--
 -- ScrollView Widget
 
-Constant.SCROLLVIEW_DECELERATE_TIME = 200
-
 -- Axis Motion
 
-Constant.AXIS_DECELERATE_TIME = 200
+-- a glide after a flick: the part of its speed which the content
+-- keeps after each millisecond (UIScrollView's normal rate)
+Constant.AXIS_DECELERATION_RATE = 0.998
+-- paging: the length of the slide to a page (milliseconds)
 Constant.AXIS_RESTORE_TIME = 400
-Constant.AXIS_RESTRAINT_TIME = 400
 Constant.AXIS_SCROLLTO_TIME = 500
 
-Constant.AXIS_VELOCITY_STACK_LENGTH = 4
+-- a drag past an edge: the content follows the finger by this much
+-- at the edge, and by less the further it goes (UIScrollView's 0.55)
+Constant.AXIS_RUBBER_BAND_FACTOR = 0.55
+-- and never goes further than this part of the length of the view
+-- (UIScrollView's limit is the whole view)
+Constant.AXIS_RUBBER_BAND_LIMIT = 1/3
+-- the spring which brings the content back to an edge: its angular
+-- frequency per millisecond (10 per second: stiffness 100, damping 20)
+Constant.AXIS_SPRING_FREQUENCY = 0.01
+
+-- speeds are in pixels per millisecond
 Constant.AXIS_VELOCITY_LIMIT = 1
+-- the fastest a touch counts for, the time (milliseconds) over which
+-- its speed is measured, and the speed at which a glide stops
+Constant.AXIS_TOUCH_VELOCITY_LIMIT = 4
+Constant.AXIS_TOUCH_VELOCITY_WINDOW = 100
+Constant.AXIS_MIN_VELOCITY = 0.01
 -- paging: from this speed (pixels per millisecond) a touch ends as a flick
 Constant.AXIS_PAGE_FLICK_VELOCITY = 0.15
 
@@ -177,12 +192,6 @@ Constant.AXIS_PAGE_FLICK_VELOCITY = 0.15
 -- SlideView Widget
 
 Constant.SLIDEVIEW_TRANSITION_TIME = 400
-
-
---======================================================--
--- TableView Widget
-
-Constant.TABLEVIEW_DECELERATE_TIME = 2000
 
 
 --======================================================--
