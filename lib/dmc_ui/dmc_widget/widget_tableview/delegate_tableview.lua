@@ -98,6 +98,19 @@ local VERSION = "0.1.0"
 -- @treturn number
 
 
+--- (optional) asks the delegate for the height of a row.
+-- with this method each row has its own height: it is called once for every row at `reloadData()`, and for the one row at `insertRowAt()` and `reloadRowAt()`. return nothing for a row as high as the TableView's `rowHeight`. without this method every row has that height.
+--
+-- @within Methods
+-- @function :heightForRow
+-- @param event the event table
+-- @tparam string event.name the event name (`TableView.EVENT`)
+-- @tparam string event.type the event type (`TableView.HEIGHT_FOR_ROW`)
+-- @object event.target the @{Widget.TableView} object
+-- @tparam number event.index the index of the row inside of the TableView
+-- @treturn number the height of the row, above zero, or nil
+
+
 --- (required) asks the delegate to render the view for the row to be added to the display.
 --
 -- @within Methods

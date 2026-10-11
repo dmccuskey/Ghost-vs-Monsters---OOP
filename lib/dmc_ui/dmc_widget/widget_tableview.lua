@@ -39,7 +39,7 @@ SOFTWARE.
 
 -- Semantic Versioning Specification: http://semver.org/
 
-local VERSION = "2.0.0"
+local VERSION = "2.1.0"
 
 
 
@@ -70,6 +70,7 @@ local Utils = require 'dmc_utils'
 
 local uiConst = require( ui_find( 'ui_constants' ) )
 
+local RowLayout = require( ui_find( 'dmc_widget.widget_tableview.row_layout' ) )
 local ScrollView = require( ui_find( 'dmc_widget.widget_scrollview' ) )
 local WidgetHelp = require( ui_find( 'core.widget_helper' ) )
 
@@ -80,9 +81,9 @@ local WidgetHelp = require( ui_find( 'core.widget_helper' ) )
 
 
 local mabs = math.abs
-local mfloor = math.floor
 local tinsert = table.insert
 local tremove = table.remove
+local tsort = table.sort
 local tcancel = timer.cancel
 local tdelay = timer.performWithDelay
 
@@ -107,52 +108,40 @@ local function setRowLineColor( row, ... )
 	line:setFillColor( ... )
 end
 
--- create records for TableView
--- these are records for each row, hold user data, position, etc. it can create multiple records at a time. uses tail-call
+-- create the record for a row which is rendered: its place in
+-- the list, its view, and the row object of the row events
 --
-local function createRecords( list, idx, count, tinsert )
-	-- print( "createRecords" )
-	if idx<=count then
-		local rec = {
-			_yMin=0,
-			_yMax=0,
-			_height=0,
-			_index=0,
-			_view=nil,
-			_user={},
-			setBackgroundColor=setRowBackgroundColor,
-			setLineColor=setRowLineColor
-		}
-		tinsert( list, idx, rec )
-		return createRecords( list, idx+1, count, tinsert )
-	end
+local function createRecord( index, top, height, data )
+	return {
+		_yMin=top,
+		_yMax=top+height,
+		_height=height,
+		_index=index,
+		_view=nil,
+		_user=data,
+		setBackgroundColor=setRowBackgroundColor,
+		setLineColor=setRowLineColor
+	}
 end
 
 
--- remove records from end moving forward
--- idx2, idx1 – indexes, inclusive
+-- move the data of the rows from 'index' on by 'delta' rows
+-- (1 after an insert, -1 after a remove). 'list' has an entry
+-- only for the rows which were given one
 --
-local function removeRecords( list, idx2, idx1, tremove )
-	-- print( "removeRecords", idx2, idx1, #list )
-	for i=idx2,idx1,-1 do
-		tremove( list, i )
+local function shiftRowData( list, index, delta )
+	local keys = {}
+	for i in pairs( list ) do
+		if i >= index then keys[ #keys+1 ] = i end
 	end
-end
-
-
--- (re-)index all of the record items in the TableView.
--- makes sure indexes and position (yMin/yMax) are correct. uses tail-call
---
-local function indexItems( list, idx, yMin, height )
-	-- print( "indexItems" )
-	local yMax = yMin+height
-	if idx<=#list then
-		local rec = list[idx]
-		rec._yMin=yMin
-		rec._yMax=yMax
-		rec._height=height
-		rec._index=idx
-		return indexItems( list, idx+1, yMax, height )
+	tsort( keys )
+	local first, last, step = 1, #keys, 1
+	-- moving up, start with the last: nothing is overwritten
+	if delta > 0 then first, last, step = #keys, 1, -1 end
+	for k = first, last, step do
+		local i = keys[k]
+		list[ i+delta ] = list[ i ]
+		list[ i ] = nil
 	end
 end
 
@@ -213,6 +202,7 @@ TableView.STYLE_TYPE = uiConst.TABLEVIEW
 
 TableView.EVENT = 'tableview-event'
 
+TableView.HEIGHT_FOR_ROW = 'row-height-event'
 TableView.RENDER_ROW = 'row-render-event'
 TableView.UNRENDER_ROW = 'row-unrender-event'
 TableView.SHOULD_HIGHLIGHT_ROW = 'row-should-highlight-event'
@@ -228,7 +218,9 @@ TableView.SELECTED_ROW = 'row-selected-event'
 function TableView:__init__( params )
 	-- print( "TableView:__init__" )
 	params = params or {}
-	if params.estimatedRowHeight==nil then params.estimatedRowHeight=20 end
+	-- 'estimatedRowHeight' is the older name of 'rowHeight'
+	if params.rowHeight==nil then params.rowHeight=params.estimatedRowHeight end
+	if params.rowHeight==nil then params.rowHeight=20 end
 	if params.renderMargin==nil then params.renderMargin=TableView._DEFAULT_RENDER_MARGIN end
 
 	-- set before going into ScrollView
@@ -243,21 +235,27 @@ function TableView:__init__( params )
 
 	--== Create Properties ==--
 
-	self._estimatedRowHeight = -1
+	self._rowHeight = -1
 
 	self._renderMargin = -1
 
 	--[[
-	array of data records for each row
-	this is all of the items which have been added to scroller
-	data is plain Lua object, added from onRender() (item_info rec)
+	where the rows are: how many, the top and height of each.
+	one of two layouts, picked at reloadData(): every row with the
+	one height (rowHeight), or each with its own (the delegate's
+	heightForRow). see row_layout.lua
 	--]]
-	self._rowItemRecords = {}
+	self._rowLayout = nil
 
 	--[[
-	array of rendered items
-	this is list of item which have been rendered
-	data is plain Lua object
+	the data table of each row (the 'data' of the row events), by
+	index. made the first time a row is rendered, and kept from then on
+	--]]
+	self._rowData = {}
+
+	--[[
+	array of the records of the rows which are rendered, in index
+	order and without gaps. a row has a record only while it is rendered
 	--]]
 	self._renderedTableCells = nil
 
@@ -291,13 +289,14 @@ function TableView:__initComplete__()
 
 	self._is_rendered = false
 
-	self._rowItemRecords = {}
+	self._rowLayout = RowLayout.Uniform.new( 0, tmp.rowHeight )
+	self._rowData = {}
 	self._renderedTableCells = {}
 
 	self._tableCellTouch_f = self:createCallback( TableView._tableCellTouch_handler )
 
 	--== Use Setters
-	self.estimatedRowHeight = tmp.estimatedRowHeight
+	self.rowHeight = tmp.rowHeight
 	self.renderMargin = tmp.renderMargin
 
 	self._tv_tmp_params = nil
@@ -312,7 +311,8 @@ function TableView:__undoInitComplete__()
 	-- not removeAllRows(): no size change on the way out
 	self:_unrenderAllTableCells( self._renderedTableCells )
 
-	self._rowItemRecords = nil
+	self._rowLayout = nil
+	self._rowData = nil
 	self._renderedTableCells = nil
 
 	self._is_rendered = false
@@ -361,8 +361,7 @@ TableView.__setters.delegate = WidgetHelp.__setters.delegate
 
 --== .estimatedRowHeight
 
---- set/get the estimated height for each row.
--- the rows take a new value at the next reloadData().
+--- set/get the height of the rows, the older name of @{rowHeight}.
 --
 -- @within Properties
 -- @function .estimatedRowHeight
@@ -371,12 +370,10 @@ TableView.__setters.delegate = WidgetHelp.__setters.delegate
 
 function TableView.__getters:estimatedRowHeight()
 	-- print( "TableView.__getters:estimatedRowHeight" )
-	return self._estimatedRowHeight
+	return self._rowHeight
 end
 function TableView.__setters:estimatedRowHeight( value )
-	assert( type(value)=='number' and value > 0 )
-	--==--
-	self._estimatedRowHeight = value
+	self.rowHeight = value
 end
 
 --== .horizontalScrollEnabled
@@ -450,6 +447,28 @@ function TableView.__setters:renderMargin( value )
 	assert( type(value)=='number' and value>=0, "TableView.renderMargin must be a number, zero or more" )
 	--==--
 	self._renderMargin = value
+end
+
+--== .rowHeight
+
+--- set/get the height of the rows.
+-- every row has this height, unless the delegate has `heightForRow`:
+-- then it is the height of a row for which that returns nothing.
+-- the rows take a new value at the next reloadData().
+--
+-- @within Properties
+-- @function .rowHeight
+-- @usage widget.rowHeight = 30
+-- @usage print( widget.rowHeight )
+
+function TableView.__getters:rowHeight()
+	-- print( "TableView.__getters:rowHeight" )
+	return self._rowHeight
+end
+function TableView.__setters:rowHeight( value )
+	assert( type(value)=='number' and value > 0, "TableView.rowHeight must be a number above zero" )
+	--==--
+	self._rowHeight = value
 end
 
 --== .scrollEnabled
@@ -529,8 +548,7 @@ end
 
 function TableView:getRowAt( idx )
 	-- print( "TableView:getRowAt", pos )
-	local records = self._rowItemRecords
-	local rec = records[idx]
+	local rec = self:_getRenderedRecord( idx )
 	return rec and rec._view
 end
 
@@ -548,16 +566,20 @@ function TableView:insertRowAt( idx )
 	assert( type(idx)=='number', "TableView:insertRowAt arg must be a number" )
 	assert( self._delegate, "TableView:insertRowAt missing delegate" )
 	--==--
-	local records = self._rowItemRecords
-	assert( idx>=1 and idx<=#records+1, "TableView:insertRowAt index must be from 1 to the number of rows plus 1" )
-	-- a row at the end goes below the last one
-	local rec, prev = records[idx], records[idx-1]
-	local yMin = rec and rec._yMin or ( prev and prev._yMax or 0 )
-	local eRH = self._estimatedRowHeight
+	local layout = self._rowLayout
+	if layout:count()==0 then
+		-- the first row of a list: either layout will do
+		layout = self:_createRowLayout( 0 )
+		self._rowLayout = layout
+	end
+	assert( idx>=1 and idx<=layout:count()+1, "TableView:insertRowAt index must be from 1 to the number of rows plus 1" )
 
-	self.scrollHeight = self.scrollHeight + eRH
-	createRecords( records, idx, idx, tinsert )
-	indexItems( records, idx, yMin, eRH )
+	-- the rows from here on have a new index, and move down
+	self:_unrenderAllTableCells( self._renderedTableCells )
+	shiftRowData( self._rowData, idx, 1 )
+	layout:insert( idx, not layout.isUniform and self:_getRowHeight( idx ) or nil )
+
+	self.scrollHeight = layout:totalHeight()
 	self:_renderDisplay{ clearAll=true }
 end
 
@@ -573,16 +595,41 @@ function TableView:reloadData()
 	-- print( "TableView:reloadData" )
 	assert( self._delegate, "TableView:reloadData missing delegate" )
 	--==--
-	local eRH = self._estimatedRowHeight
 	local num = self._delegate:numberOfRows( self, 0 )
-	local records = {}
-	local yMin = 0
 
-	self.scrollHeight = num*eRH
-	createRecords( records, 1, num, tinsert )
-	indexItems( records, 1, yMin, eRH )
-	self._rowItemRecords = records
+	self:_unrenderAllTableCells( self._renderedTableCells )
+	self._rowData = {}
+	self._rowLayout = self:_createRowLayout( num )
 
+	self.scrollHeight = self._rowLayout:totalHeight()
+	self:_renderDisplay{ clearAll=true }
+end
+
+--== :reloadRowAt
+
+--- make a row again, with the height it has now.
+-- asks the delegate for the row's height again (`heightForRow`),
+-- moves the rows below it, and renders the row again.
+-- the row keeps its data.
+--
+-- @within Methods
+-- @function :reloadRowAt
+-- @int index index of the row to make again
+
+function TableView:reloadRowAt( idx )
+	-- print( "TableView:reloadRowAt", idx )
+	assert( type(idx)=='number', "TableView:reloadRowAt arg must be a number" )
+	assert( self._delegate, "TableView:reloadRowAt missing delegate" )
+	--==--
+	local layout = self._rowLayout
+	assert( idx>=1 and idx<=layout:count(), "TableView:reloadRowAt no row at that index" )
+
+	self:_unrenderAllTableCells( self._renderedTableCells )
+	if not layout.isUniform then
+		layout:setHeight( idx, self:_getRowHeight( idx ) )
+	end
+
+	self.scrollHeight = layout:totalHeight()
 	self:_renderDisplay{ clearAll=true }
 end
 
@@ -596,9 +643,9 @@ end
 
 function TableView:removeAllRows()
 	-- print( "TableView:removeAllRows" )
-	local records = self._rowItemRecords
 	self:_unrenderAllTableCells( self._renderedTableCells )
-	removeRecords( records, #records, 1, tremove )
+	self._rowData = {}
+	self._rowLayout = RowLayout.Uniform.new( 0, self._rowHeight )
 	-- nothing left to scroll (the setter keeps it at the view's height)
 	self.scrollHeight = 0
 end
@@ -616,21 +663,20 @@ function TableView:removeRowAt( idx )
 	-- print( "TableView:removeRowAt", idx )
 	assert( type(idx)=='number', "TableView:removeRowAt arg must be a number" )
 	--==--
-	local records = self._rowItemRecords
-	local rec = records[idx]
-	if not rec then
+	local layout = self._rowLayout
+	if idx<1 or idx>layout:count() then
 		print("WARNING: TableView:removeRowAt no row at that index")
 		return
 	end
-	local yMin = rec and rec._yMin or 0
-	local eRH = self._estimatedRowHeight
 
-	self.scrollHeight = self.scrollHeight - eRH
-	self:_unrenderTableCell( rec )
-	removeRecords( records, idx, idx, tremove )
-	indexItems( records, idx, yMin, eRH )
-	-- always: the rows below moved up, also when the row removed
-	-- was above the ones rendered
+	-- the rows below have a new index, and move up: also when
+	-- the row removed was above the ones rendered
+	self:_unrenderAllTableCells( self._renderedTableCells )
+	self._rowData[ idx ] = nil
+	shiftRowData( self._rowData, idx+1, -1 )
+	layout:remove( idx )
+
+	self.scrollHeight = layout:totalHeight()
 	self:_renderDisplay{ clearAll=true }
 end
 
@@ -657,10 +703,10 @@ function TableView:scrollToRowAt( idx, params )
 	if params.position==nil then params.position='none' end
 	if params.limitIsActive==nil then params.limitIsActive=false end
 	--==--
-	local record = self._rowItemRecords[ idx ]
-	assert( record, "TableView:scrollToRowAt no row at that index" )
+	local layout = self._rowLayout
+	assert( idx>=1 and idx<=layout:count(), "TableView:scrollToRowAt no row at that index" )
 
-	local pos = self:_calculateScrollPosition( record, params.position )
+	local pos = self:_calculateScrollPosition( layout:top( idx ), layout:height( idx ), params.position )
 
 	-- the rows are rendered as the axis reports its positions
 	self._axisY:scrollToPosition( pos, params )
@@ -716,239 +762,120 @@ function TableView:_viewportBounds()
 end
 
 
--- determine if record is inside of Table View bounds
+-- the layout for 'count' rows, as the delegate has it: each row with
+-- its own height if the delegate has heightForRow(), otherwise every
+-- row with the one height
 --
-function TableView:_isWithinBounds( bounds, record )
-	-- print( "TableView:_isWithinBounds", bounds, record.index )
-
-	local result = false
-	local bType = 'none'
-
-	if record._yMin < bounds.yMin and bounds.yMin <= record._yMax then
-		-- view cut on top
-		bType = 'cut'
-		result = true
-	elseif record._yMin <= bounds.yMax and bounds.yMax < record._yMax then
-		-- view cut on bottom
-		bType = 'cut'
-		result = true
-	elseif record._yMin >= bounds.yMin and record._yMax <= bounds.yMax  then
-		-- view fully in View Port
-		bType = 'full'
-		result = true
-	elseif record._yMin < bounds.yMin and bounds.yMax < record._yMax then
-		-- view extends over View Port
-		bType = 'extend'
-		result = true
+function TableView:_createRowLayout( count )
+	-- print( "TableView:_createRowLayout", count )
+	local delegate = self._delegate
+	if not ( delegate and delegate.heightForRow ) then
+		return RowLayout.Uniform.new( count, self._rowHeight )
 	end
 
-	return result, bType
-end
-
-
--- search for an item which should be visible.
--- usually used when there are no visible table cells
--- uses binary search
--- @table records array of data items
---
-function TableView:_findVisibleItem( records, min, max )
-	-- print( "TableView:_findVisibleItem", min, max  )
-
-	if #records == 0 then return end
-	local _mfloor = mfloor
-	local low, high = 1, #records
-	local mid
-
-	while( low <= high ) do
-		mid = _mfloor( low + ( (high-low)*0.5 ) )
-		-- any row which overlaps the bounds will do
-		if records[mid]._yMin > max then
-			high = mid - 1
-		elseif records[mid]._yMax < min then
-			low = mid + 1
-		else
-			return mid  -- found
-		end
+	local heights = {}
+	for i = 1, count do
+		heights[i] = self:_getRowHeight( i )
 	end
-
-	return nil
+	return RowLayout.Variable.new( heights )
 end
 
 
--- renders table cells.
--- adds cells starting at Top, moving Up
+-- ask the delegate for the height of a row.
+-- rowHeight if it has none for it
 --
-function TableView:_renderUp( records, index, bounds )
-	-- print( "TableView:_renderUp", index, bounds )
-
-	if index < 1 or index > #records then return end
-
-	local isBounded_f = self._isWithinBounds
-	local renderCell_f = self._renderTableCell
-	local record, isBounded, bType
-
-	repeat
-		record = records[ index ]
-		if not record then break end
-		isBounded, bType = isBounded_f( self, bounds, record )
-		-- print( "rU", index, bType, record, record._yMin, isBounded )
-		-- a row cut by the bounds is rendered too: with a small
-		-- render margin it is partly in view
-		if not isBounded then
-			break
-		else
-			renderCell_f( self, record, { putAtHead=true } )
-			index = index - 1
-		end
-	until false
-
-end
-
--- renders table cells.
--- adds cells starting at Bottom, moving Down
---
-function TableView:_renderDown( records, index, bounds )
-	-- print( "TableView:_renderDown", index, bounds )
-
-	if index < 1 or index > #records then return end
-
-	local isBounded_f = self._isWithinBounds
-	local renderCell_f = self._renderTableCell
-	local record, isBounded, bType
-
-	repeat
-		record = records[ index ]
-		if not record then break end
-		isBounded, bType = isBounded_f( self, bounds, record )
-		-- print( "rD", index, bType, record, record._yMax, isBounded )
-		-- a row cut by the bounds is rendered too: with a small
-		-- render margin it is partly in view
-		if not isBounded then
-			break
-		else
-			renderCell_f( self, record, { putAtHead=false } )
-			index = index + 1
-		end
-	until false
-
+function TableView:_getRowHeight( index )
+	-- one table for all of the calls: a long list asks for every row
+	local e = self._heightEvent
+	if e==nil then
+		e = { name=TableView.EVENT, type=TableView.HEIGHT_FOR_ROW, target=self }
+		self._heightEvent = e
+	end
+	e.index = index
+	local height = self._delegate:heightForRow( e )
+	if height==nil then return self._rowHeight end
+	assert( type(height)=='number' and height>0, "TableView: heightForRow must return a number above zero, or nothing" )
+	return height
 end
 
 
--- removes rendered table cells
--- starts check from Bottom and moves Up
+-- the data table of a row: made when first asked for, then kept
 --
-function TableView:_unrenderUpFromBottom( bounds )
-	-- print( "TableView:_unrenderUpFromBottom"  )
+function TableView:_getRowData( index )
+	local list = self._rowData
+	local data = list[ index ]
+	if data==nil then
+		data = {}
+		list[ index ] = data
+	end
+	return data
+end
 
-	local isBounded_f = self._isWithinBounds
-	local unrenderCell_f = self._unrenderTableCell
+
+-- the record of a row, if the row is rendered
+--
+function TableView:_getRenderedRecord( index )
 	local renderedCells = self._renderedTableCells
-	local index, record, isBounded, bType
-
-	index = #renderedCells
-	record = renderedCells[ index ]
-	while record do
-		isBounded, bType = isBounded_f( self, bounds, record )
-		if isBounded then
-			break
-		else
-			unrenderCell_f( self, record, { index=index } )
-			index = #renderedCells
-			record = renderedCells[ index ]
-		end
-	end
-
+	local first = renderedCells and renderedCells[1]
+	if not first then return nil end
+	return renderedCells[ index - first._index + 1 ]
 end
 
--- removes rendered table cells
--- starts check from Top and moves Down
+
+-- make the rows which are in the view (and its render margin),
+-- and remove the ones which no longer are
 --
-function TableView:_unrenderDownFromTop( bounds )
-	-- print( "TableView:_unrenderDownFromTop"  )
-
-	local isBounded_f = self._isWithinBounds
-	local unrenderCell_f = self._unrenderTableCell
-	local renderedCells = self._renderedTableCells
-	local record, isBounded, bType
-
-	-- the index never changes
-	record = renderedCells[ 1 ]
-	while record do
-		isBounded, bType = isBounded_f( self, bounds, record )
-		if isBounded then
-			break
-		else
-			unrenderCell_f( self, record, { index=1 } )
-			record = renderedCells[ 1 ]
-		end
-	end
-
-end
-
-
 function TableView:_renderDisplay( params )
 	-- print( "TableView:_renderDisplay" )
 	params = params or {}
 	if params.clearAll==nil then params.clearAll=false end
 	--==--
-
-	local records = self._rowItemRecords
-	if #records == 0 then return end
+	local layout = self._rowLayout
+	local renderedCells = self._renderedTableCells
+	if not layout or not renderedCells then return end
 
 	if params.clearAll then
-		self:_unrenderAllTableCells( self._renderedTableCells )
+		self:_unrenderAllTableCells( renderedCells )
 	end
-
-	local isBounded_f = self._isWithinBounds
-	local renderedCells = self._renderedTableCells
+	if layout:count()==0 then return end
 
 	local bounds = self:_viewportBounds()
-	local record, isBounded, bType
+	if not bounds.yMin then return end
+	-- a row which the bounds cut is rendered too: with a small
+	-- render margin it is partly in view
+	local first, last = layout:range( bounds.yMin, bounds.yMax )
 
-	local function renderAllCells( recs, bnds )
-		local idx = self:_findVisibleItem( recs, bnds.yMin, bnds.yMax )
-		if idx then
-			local rec = recs[ idx ]
-			self:_renderTableCell( rec )
-			self:_renderUp( recs, rec._index-1, bnds )
-			self:_renderDown( recs, rec._index+1, bnds )
-		end
+	if first==nil then
+		self:_unrenderAllTableCells( renderedCells )
+		return
 	end
 
-	--== Check top of rendered list ==--
+	--== Remove the rows which scrolled away ==--
 
-	if #renderedCells==0 then
-		renderAllCells( records, bounds )
-	else
+	local record = renderedCells[ 1 ]
+	while record and ( record._index < first or record._index > last ) do
+		self:_unrenderTableCell( record, { index=1 } )
 		record = renderedCells[ 1 ]
-		isBounded, bType = isBounded_f( self, bounds, record )
-		if not isBounded then
-			-- this item scrolled off screen so check others below
-			self:_unrenderDownFromTop( bounds )
-		else
-			self:_renderUp( records, record._index-1, bounds )
-		end
 	end
-
-	--== Check bottom of rendered list ==--
-
-	if #renderedCells==0 then
-		renderAllCells( records, bounds )
-	else
+	record = renderedCells[ #renderedCells ]
+	while record and record._index > last do
+		self:_unrenderTableCell( record, { index=#renderedCells } )
 		record = renderedCells[ #renderedCells ]
-		isBounded, bType = isBounded_f( self, bounds, record )
-		if not isBounded then
-			-- this item scrolled off screen so check others above
-			self:_unrenderUpFromBottom( bounds )
-		else
-			self:_renderDown( records, record._index+1, bounds )
-		end
 	end
 
-	--== Final Check ==--
+	--== Add rows above and below the ones there ==--
 
 	if #renderedCells==0 then
-		renderAllCells( records, bounds )
+		for i = first, last do
+			self:_renderTableCell( i, { putAtHead=false } )
+		end
+	else
+		for i = renderedCells[1]._index-1, first, -1 do
+			self:_renderTableCell( i, { putAtHead=true } )
+		end
+		for i = renderedCells[ #renderedCells ]._index+1, last do
+			self:_renderTableCell( i, { putAtHead=false } )
+		end
 	end
 
 end
@@ -1039,15 +966,15 @@ end
 -- setup creation of new Table Cell
 -- creates visual holder for User's TableCell
 --
--- @param record an record for a row item
+-- @param index the index of a row which is not rendered
 --
-function TableView:_renderTableCell( record, options )
-	-- print( "TableView:_renderTableCell", record, record._index )
+function TableView:_renderTableCell( index, options )
+	-- print( "TableView:_renderTableCell", index )
 	options = options or {}
 	if options.putAtHead==nil then options.putAtHead=true end
 	--==--
-
-	if record._view then --[[ print("already rendered") ; --]] return end
+	local layout = self._rowLayout
+	local record = createRecord( index, layout:top( index ), layout:height( index ), self:_getRowData( index ) )
 
 	local width = self.width
 	local renderedCells = self._renderedTableCells
@@ -1122,7 +1049,7 @@ end
 -- setup deleation of existing Table Cell
 -- deletes visual holder for User's TableCell
 --
--- @param record an record for a row item
+-- @param record the record of a rendered row
 --
 function TableView:_unrenderTableCell( record, options )
 	-- print( "TableView:_unrenderTableCell", record, record._index )
@@ -1195,101 +1122,24 @@ end
 
 
 
---[[
-function TableView:_updateBackground()
-	-- print( "TableView:_updateBackground" )
-
-	local items = self._item_data_recs
-	local o = self._bg
-
-	local total_dim, item
-	local x, y
-
-	-- set our total item dimension
-
-	if #items == 0 then
-		total_dim = 0
-	else
-		item = items[ #items ]
-		total_dim = item.yMax
-	end
-
-	self._total_item_dimension = total_dim
-
-	-- set background height, make at least height of window
-
-	if total_dim < self._height then
-		total_dim = self._height
-	end
-
-	x, y = o.x, o.y
-	o.height = total_dim
-	o.anchorX, o.anchorY = 0,0
-	o.x, o.y = x, y
-
-end
---]]
-
-
--- calculate vertical direction
+-- the position of the list which puts a row, by its top and
+-- height, at a place in the view
 --
---[[
-function TableView:_updateDimensions( item_info, item_data )
-	-- print( "TableView:_updateDimensions", item_info )
-
-	local total_dim = self._total_item_dimension
-	local o
-	local x, y
-
-	-- configure item data of new item element
-
-	item_data.height = item_info.height
-	item_data.yMin = self._total_item_dimension
-	item_data.yMax = item_data.yMin + item_data.height
-
-	tinsert( self._item_data_recs, item_data )
-	item_data.index = #self._item_data_recs
-
-	-- print( 'item insert', item_data.yMin, item_data.yMax )
-
-	total_dim = total_dim + item_data.height
-
-	self._total_item_dimension = total_dim
-
-
-	-- adjust background height
-
-	if total_dim < self._height then
-		total_dim = self._height
-	end
-
-	o = self._bg
-	x, y = o.x, o.y -- temp
-	o.height = total_dim
-	o.anchorX, o.anchorY = 0,0
-	o.x, o.y = x, y
-
-end
---]]
-
-
-function TableView:_calculateScrollPosition( record, position )
-	-- print( "TableView:_calculateScrollPosition", record, position )
+function TableView:_calculateScrollPosition( top, height, position )
+	-- print( "TableView:_calculateScrollPosition", top, height, position )
 	local value = 0
 	local offset = 0
 
 	if position=='top' then
 		offset = 0+self.upperVerticalOffset
-		value = offset-record._yMin
-	elseif position=='middle' then
-		offset = self.height/2
-		value = offset-record._yMin
+		value = offset-top
 	elseif position=='bottom' then
 		offset = self.height-self.lowerVerticalOffset
-		value = offset-(record._yMin+record._height)
+		value = offset-(top+height)
 	else
+		-- 'middle', and by default
 		offset = self.height/2
-		value = offset-record._yMin
+		value = offset-top
 	end
 
 	-- stay inside the scroll limits: the first rows can't be
@@ -1395,12 +1245,11 @@ function TableView:_dispatchSelectedRow( record )
 		if rowIdx==nil then return end
 	end
 	if rowIdx~=record._index then
-		-- get alternate record
-		record = self._rowItemRecords[ rowIdx ]
-		if not record then return end
-		evt.index=record._index
-		evt.view=record._view
-		evt.data=record._user
+		-- another row: it has a view only while it is rendered
+		if type(rowIdx)~='number' or rowIdx<1 or rowIdx>self._rowLayout:count() then return end
+		evt.index=rowIdx
+		evt.view=self:getRowAt( rowIdx )
+		evt.data=self:_getRowData( rowIdx )
 	end
 
 	evt.type=TableView.SELECTED_ROW
